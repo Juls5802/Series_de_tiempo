@@ -1,0 +1,79 @@
+---
+title: "Análisis de series de tiempo"
+author:
+  - Ana Sofia Bello Dueñas
+  - Andres Stiven Garcia Lopez
+  - Danna Julieta Ruiz Castiblanco
+format: html
+editor: visual
+---
+
+```{r}
+# install.packages("TSstudio")
+# install.packages("lubridate")
+# install.packages("astsa")
+# install.packages("feasts")
+# install.packages("fable")
+# install.packages("timetk")
+# install.packages("tsibble")
+# install.packages("tidyverse")
+library(TSstudio)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(astsa)
+```
+
+# Recaudo interno de la Dian
+
+La siguiente serie muestra el recaudo interno de la dian entre los años isffhwig y sogjowenv, el recaudo interno se define como khgkvgb. 
+
+```{r}
+# Base de datos de la DIAN
+dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
+años<-2000:2023
+dian<-dplyr::filter(dian,Año %in% años)
+colnames(dian)<-c("Año","Mes","Impuestos")
+dian$fecha<-as.Date(paste(dian$Año, dian$Mes, "1", sep = "-"), format = "%Y-%B-%d")
+dian<-dian[,3:4]
+```
+
+Se tiene la siguiente serie de tiempo (depues escribimos esto bonito entre los tres)
+
+```{r}
+# Serie de tiempo de la DIAN
+dian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)
+plot(dian2, main="Serie de tiempo del recaudo mensual interno",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Recaudo interno",
+     cex.lab=0.4)
+```
+
+# Consumo de energía
+
+La siguiente base de datos contiene info sobre el consumo de energia de la empresa khvwb en estados unidos durante el periodo de gvklebvjne a vrhnvenr
+
+```{r}
+# Base de datos de energia
+AEP_hourly<-read.csv("AEP_hourly.csv")
+AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
+AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
+
+energia <- AEP_hourly %>%
+  group_by(fecha) %>%
+  summarise(Energia = sum(AEP_MW))
+```
+
+Se tiene la siguiente serie de tiempo.  
+
+```{r}
+# Serie de tiempo de la energia
+energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+```
+
