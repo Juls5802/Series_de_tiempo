@@ -17,11 +17,20 @@ editor: visual
 # install.packages("timetk")
 # install.packages("tsibble")
 # install.packages("tidyverse")
+# install.packages("forecast")
 library(TSstudio)
 library(readxl)
 library(dplyr)
 library(lubridate)
 library(astsa)
+library(feasts)
+library(fable)
+library(timetk)
+library(tsibble)
+library(zoo)
+library(xts)
+library(tidyverse)
+library(forecast)
 ```
 
 # Recaudo interno de la Dian
@@ -50,6 +59,129 @@ plot(dian2, main="Serie de tiempo del recaudo mensual interno",
      cex.lab=0.4)
 ```
 
+## Análisis descriptivo
+
+La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta  tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
+
+La siguiente es otra gráfica de la serie de tiempo pero hecha diferente
+
+```{r}
+class(dian2)
+
+dian3<-window(dian2, start = c(2000,1))
+ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
+        Ytitle="Recaudo interno",
+        Xtitle="Tiempo",
+        Xgrid=TRUE,
+        Ygrid=TRUE)
+```
+
+Ahora trabajando con un objeto tibble queda
+
+```{r}
+# Objeto tibble
+Dian_1=dian %>% map_df(rev)
+
+Fechas=as.yearmon(Dian_1$fecha)
+Dian_xts=xts(x = Dian_1$Impuestos,frequency = 12,order.by = Fechas)
+ts_info(Dian_xts)
+plot(Dian_xts)
+```
+
+Ahora trabajando con un objeto tssible a partir de un objeto tibble, podemos ver una gráfica de la serie de tiempo con la línea de tendencia estimada por un modelo de regresión.
+
+```{r}
+df_dian=data.frame(impuesto=Dian_1$Impuestos,fecha=Dian_1$fecha)
+tbl_dian=tibble(df_dian)
+tbl_dian_format_fecha=tbl_dian
+tbl_dian_format_fecha$fecha=yearmonth(tbl_dian_format_fecha$fecha)
+tsbl_dian=as_tsibble(tbl_dian_format_fecha,index=fecha)
+
+tbl_dian$fecha<-as.Date(zoo::as.yearmon(tbl_dian$fecha))
+tbl_dian
+tbl_dian%>%plot_time_series(.value=impuesto,.date_var=fecha)#gráfica timetk
+
+# Analisis de tendencia con regresion simple ####
+summary(fit<-lm(dian2~time(dian2),na.action=NULL))
+plot(dian2,ylab="Recaudo interno") 
+abline(fit,col="darkcyan",lwd=2)
+```
+
+Eliminamos la tendencia con la predicción la recta, lo cual da la siguiente serie.
+
+```{r}
+ElimiTenddian<-dian2-predict(fit)
+plot(ElimiTenddian,main="Serie Dian sin tendencia",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Recaudo interno",
+     cex.lab=0.4)
+```
+
+Ahora el gráfico de la autocorrelación
+
+```{r}
+acf(ElimiTenddian,lag.max=179)
+```
+
+Loess para hacer el ajuste de la tendencia, se puede ver en la siguiente gráfica 4 paneles, en el 1 panel fceov, en el 2 jcvefbv y en el 3 ejovherfnv, en el 4 hcedncv.
+
+```{r}
+# Descomposición
+dian_decompo=decompose(dian2)
+plot(dian_decompo)
+dian_decompo$trend
+
+# Descomposición STL 
+tsibble_dian<-as_tsibble(dian2)
+str(tsibble_dian)
+tsibble_dian %>%
+  model(
+    STL(value ~ trend() +
+          season(window = "periodic"),
+        robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+```
+
+Aun no se que es esto pero quita tendencia xd, es un panel con 2 graficas, la primera sin tendencia y la segunda sin tendencia con el método de la primera diferencia.
+
+```{r}
+par(mar = c(2,2,2,2))
+fit = lm(dian2~time(dian2), na.action=NULL) # Regresión sobre el tiempo
+par(mfrow=c(2,1))
+plot(resid(fit), type="l", main="sin tendencia") #Sin tendencia quitandola con regresión
+plot(diff(dian2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
+```
+
+Ahora el gráfico de los coeficientes de autocorrelación, notese que no bajan tan rapido sino que lo hacen lentico y tiene un ciclo estacional.
+
+```{r}
+par(mar = c(3,2,3,2))
+par(mfrow=c(3,1)) # plot ACFs
+acf(dian2, 60, main="ACF Dian")
+acf(resid(fit), 60, main="ACF Sin tendencia") 
+acf(diff(dian2), 60, main="ACF Primera Diferencia")
+```
+
+La transformación Box Cox en la siguiente gráfica.
+
+```{r}
+forecast::BoxCox.lambda(dian2, method ="loglik",
+                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
+plot(forecast::BoxCox(dian2,lambda=0.1))
+```
+
+Grafico de la serie sin transformar y transformada.
+
+```{r}
+par(mar = c(1,1,1,1))
+par(mfrow=c(2,1))
+ldian2=log(dian2)
+plot(dian2,main="Serie Dian sin Transformar")
+plot(ldian2,main="Series con Transformación BoxCox")
+```
+
 # Consumo de energía
 
 La siguiente base de datos contiene info sobre el consumo de energia de la empresa khvwb en estados unidos durante el periodo de gvklebvjne a vrhnvenr
@@ -71,9 +203,122 @@ Se tiene la siguiente serie de tiempo.
 # Serie de tiempo de la energia
 energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
 plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
-     cex.main=1.3,
+     cex.main=0.8,
      xlab="Tiempo ",
      ylab="Energía consumida",
      cex.lab=0.4)
 ```
 
+## Análisis descripitivo
+
+La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta  tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
+
+La siguiente es otra gráfica de la serie de tiempo pero hecha diferente
+
+```{r}
+class(energia2)
+
+energia3<-window(energia2, start = c(2004,10))
+ts_plot(energia3,title="Serie de tiempo del recaudo mensual interno",
+        Ytitle="Recaudo interno",
+        Xtitle="Tiempo",
+        Xgrid=TRUE,
+        Ygrid=TRUE)
+```
+
+Estimación preliminar de la tendencia con un objeto tibble, y una gráfica de eso
+
+```{r}
+energia_1=energia %>% map_df(rev)
+
+Fechas=as.Date(energia_1$fecha)
+energia_xts=xts(x = energia_1$Energia,frequency = 365.25,order.by = Fechas)
+ts_info(energia_xts)
+plot(energia_xts)
+```
+
+Creación objeto tssible a partir de un objeto tibble, con un gráfico de la serie con la línea de tendencia estimada con un modelo de regresión
+
+```{r}
+df_energia=data.frame(Energia=energia_1$Energia,fecha=energia_1$fecha)
+tbl_energia=tibble(df_energia)
+tbl_energia_format_fecha=tbl_energia
+tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
+tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha))
+tbl_energia%>%plot_time_series(.value=Energia,.date_var=fecha)#gráfica timetk
+
+summary(fit_e<-lm(energia2~time(energia2),na.action=NULL))
+plot(energia2,ylab="Consumo de energia total.") 
+abline(fit_e,col="darkcyan",lwd=2)
+```
+
+Eliminamos la tendencia con la predicción la recta y gráfico
+
+```{r}
+ElimiTendenerg<-energia2-predict(fit_e)
+plot(ElimiTendenerg,main="Serie energia sin tendencia",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Consumo de energia total",
+     cex.lab=0.4)
+```
+
+Ahora la gráfica de la autocorrelación
+
+```{r}
+acf(ElimiTendenerg,lag.max=179)
+```
+
+Loess para hacer el ajuste de la tendencia, descomposición STL y gráfico.
+
+```{r}
+# Descomposicion
+energia_decompo=decompose(energia2)
+plot(energia_decompo)
+energia_decompo$trend
+
+### Descomposición STL ####
+tsibble_energia<-as_tsibble(energia2)
+str(tsibble_energia)
+tsibble_energia %>%
+  model(
+    STL(value ~ trend() +
+          season(window = "periodic"),
+        robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+```
+
+Aun no se que es esto pero quita tendencia xd, grafico sin tendencia y sin tendencia por primera diferencia
+
+```{r}
+par(mar = c(2,2,2,2))
+fit_e = lm(energia2~time(energia2), na.action=NULL) # Regresión sobre el tiempo
+par(mfrow=c(2,1))
+plot(resid(fit_e), type="l", main="sin tendencia") #Sin tendencia quitandola con regresión
+plot(diff(energia2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
+```
+
+Gráfico de los acf, notese que no bajan tan rapido sino que lo hacen lentico y tiene un ciclo estacional
+
+```{r}
+par(mar = c(3,2,3,2))
+par(mfrow=c(3,1)) # plot ACFs
+acf(energia2, 60, main="ACF energia")
+acf(resid(fit_e), 60, main="ACF Sin tendencia") 
+acf(diff(energia2), 60, main="ACF Primera Diferencia")
+```
+
+Transformacion de box cox ####
+
+```{r}
+forecast::BoxCox.lambda(energia2, method ="loglik",
+                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
+plot(forecast::BoxCox(energia2,lambda=0.1))
+par(mar = c(1,1,1,1))
+par(mfrow=c(2,1))
+
+lenergia2=log(energia2)
+plot(energia2,main="Serie de energia sin transformar")
+plot(lenergia2,main="Series con Transformación BoxCox")
+```
