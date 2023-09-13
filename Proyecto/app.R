@@ -27,23 +27,25 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
               navbarPage(img(src="logo.png",height=20,width=50,align="right"),
               tabPanel("Introducción",sidebarLayout(position="right",
               sidebarPanel(width=4,
-                           h3("Trabajo de series temporales",align='left'),
+                           h3("Trabajo de series de tiempo",align='left'),
                            p("Hecho por ",strong("Sofia Bello Dueñas, Andrés García Lopez, Julieta Ruiz Castiblanco"),
                            style = "font-family: 'Bahnschrift'; font-si20pt"),
                            hr(),
                            p("Este trabajo realiza un análisis de dos bases de datos: Recaudo de impuestos 
                               internos por la DIAN para los años 2000 a 2023 y consumo de energía por horas de la 
-                              organización regional de transmisión PJM Interconnection para los años 2004 a 2018
-                              El análisis se realiza de forma estadística, se hace el análisis descriptivo, así
-                              como su correspondiente interpretación.",
+                              organización regional de transmisión PJM Interconnection para los años 2004 a 2018.
+                              El análisis se desarrolla de forma estadística, realizando la parte descriptiva con su
+                              correspondiente interpretación.",
                            style = "font-family: 'Bahnschrift'; font-si20pt"),
                            h3("Fuente de los datos",  align = "left"),
                            p("Los datos del recaudo de impuestos internos de la DIAN se obtuvieron de la siguiente fuente",
-                           tags$a(href="https://www.dian.gov.co/dian/cifras/Paginas/EstadisticasRecaudo.aspx", "Estadísticas de recaudo mensual por Tipo de impuesto 2000 - 2023"),
-                                  ", los datos del consumo de energía de la empresa PJM",
-                           tags$a(href="https://www.kaggle.com/datasets/robikscube/hourly-energy-consumption?resource=download", "Hourly Energy Consumption"),
+                           tags$a(href="https://www.dian.gov.co/dian/cifras/Paginas/EstadisticasRecaudo.aspx", 
+                                  "Estadísticas de recaudo mensual por Tipo de impuesto 2000 - 2023."),
+                                  br(),
+                                  "Los datos del consumo de energía de la empresa PJM se obtuvieron de la siguiente fuente",
+                           tags$a(href="https://www.kaggle.com/datasets/robikscube/hourly-energy-consumption?resource=download", "Hourly Energy Consumption."),
                            style = "font-family: 'Bahnschrift'; font-si20pt"),
-                           img(src = "logo.png", height=50,width=80, align="right"),
+                           img(src = "logo.png", height=35,width=80, align="right"),
                            br(),
                            br(),
                            br(),
@@ -61,32 +63,37 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
                                         mensual. Los impuestos internos son aquellos que se aplican a las actividades 
                                         económicas y transacciones que ocurren dentro del país, los impuestos internos en
                                         Colombia pueden incluir: IVA, impuesto de renta y complementarios, impuesto de 
-                                        timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.
-                                        El recaudo de estos impuestos internos es esencial para financiar las actividades
+                                        timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.",
+                                      style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                     br(),
+                                     p("El recaudo de estos impuestos internos es esencial para financiar las actividades
                                         gubernamentales, incluyendo la provisión de servicios públicos, la inversión en
                                         infraestructura y el funcionamiento del gobierno. El seguimiento y la gestión 
                                         eficiente del recaudo de impuestos internos es fundamental para mantener la 
                                         estabilidad económica y el desarrollo del país.",
                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                      br(),
-                                      h3("Recaudo de impuestos internos"),
-                                      fluidRow(column(width=3, align="left",
-                                          hr(),
-                                          column(width=9,
-                                          tabsetPanel(tabPanel("Serie de tiempo",
-                                                       plotOutput("dian",height =300)),
-                                            ))),
-                                     
-                           ),
-              
-              )
+                                     h3("Serie de tiempo"),
+                                     plotOutput("serie_impuesto"),
+                                     h1("Análisis del consumo de energía de la empresa PJM",  align = "center"),
+                                     h2("Motivación"),
+                                     p("PJM es una organización de transmisión regional que coordina el movimiento
+                                        de electricidad mayorista en la totalidad o parte de 13 estados y el Distrito de 
+                                        Columbia.",
+                                      style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                     br(),
+                                     p("El análisis del consumo de energía es esencial para mejorar la eficiencia 
+                                        operativa, reducir costos, cumplir con regulaciones, promover la sostenibilidad
+                                        y mantener la competitividad en un mundo en constante cambio.",
+                                      style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                     h3("Serie de tiempo"),
+                                     plotOutput("serie_energia"),
               ),
 ),
-))
+)))
 
 server<-function(input,output){
   
-  output$dian<-renderPlot({
+  output$serie_impuesto<-renderPlot({
     dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
     años<-2000:2023
     dian<-dplyr::filter(dian,Año %in% años)
@@ -100,6 +107,22 @@ server<-function(input,output){
          ylab="Recaudo interno",
          cex.lab=0.4)
   })
+  
+  output$serie_energia<-renderPlot({
+    AEP_hourly<-read.csv("AEP_hourly.csv")
+    AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
+    AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
+    energia <- AEP_hourly %>%
+      group_by(fecha) %>%
+      summarise(Energia = sum(AEP_MW))
+    energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
+    plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+         cex.main=1.2,
+         xlab="Tiempo ",
+         ylab="Energía consumida",
+         cex.lab=0.4)
+  })
+
 }
 # Run the application 
 shinyApp(ui = ui, server = server)

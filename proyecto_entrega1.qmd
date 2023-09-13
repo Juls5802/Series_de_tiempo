@@ -35,7 +35,7 @@ library(forecast)
 
 # Recaudo interno de la Dian
 
-La siguiente serie muestra el recaudo interno de la dian entre los años isffhwig y sogjowenv, el recaudo interno se define como khgkvgb. 
+La siguiente serie muestra el recaudo interno de la dian entre los años isffhwig y sogjowenv, el recaudo interno se define como khgkvgb.
 
 ```{r}
 # Base de datos de la DIAN
@@ -61,7 +61,7 @@ plot(dian2, main="Serie de tiempo del recaudo mensual interno",
 
 ## Análisis descriptivo
 
-La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta  tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
+La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
 
 La siguiente es otra gráfica de la serie de tiempo pero hecha diferente
 
@@ -197,7 +197,7 @@ energia <- AEP_hourly %>%
   summarise(Energia = sum(AEP_MW))
 ```
 
-Se tiene la siguiente serie de tiempo.  
+Se tiene la siguiente serie de tiempo.
 
 ```{r}
 # Serie de tiempo de la energia
@@ -211,7 +211,7 @@ plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estado
 
 ## Análisis descripitivo
 
-La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta  tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
+La serie es medida mensual, es decir, presenta una frecuencia de 12. Presenta tendencia (aumenta), ciclos estacionales (cada año mas o menos), varianza marginal no constante (aumenta).
 
 La siguiente es otra gráfica de la serie de tiempo pero hecha diferente
 
@@ -309,7 +309,7 @@ acf(resid(fit_e), 60, main="ACF Sin tendencia")
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
 
-Transformacion de box cox ####
+Transformacion de box cox \####
 
 ```{r}
 forecast::BoxCox.lambda(energia2, method ="loglik",
