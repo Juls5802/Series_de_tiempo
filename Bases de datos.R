@@ -33,7 +33,7 @@ plot(dian2, main="Serie de tiempo del recaudo mensual interno",
 
 
 #### Base de datos de energia
-AEP_hourly<-read.csv("C:/Users/andre/OneDrive/Escritorio/Andrés/2023-2/Series de tiempo/Proyecto/AEP_hourly.csv")
+AEP_hourly<-read.csv("AEP_hourly.csv")
 AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
 AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
 

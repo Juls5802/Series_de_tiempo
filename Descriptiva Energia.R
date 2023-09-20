@@ -8,17 +8,17 @@ library(xts)
 library(readxl)
 library(tidyverse)
 ### Transformacion de box cox con objeto ts####
-MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
+MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(energia2, method ="loglik",
-                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
-plot(forecast::BoxCox(energia2,lambda=0.35))
+                        lower = -1, upper = 3)#Entrega el valor de lambda (0.35).
+plot(forecast::BoxCox(energia2,lambda=0.35))  # ¿¿¿tocaria hacer la transformación logaritmica??
 par(mar = c(1,1,1,1))
 lenergia2=log(energia2)
 MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length = 50))#Si captura al 1 auqnue por pqouito, toca preguntarle al profe que hacer ahí 
 abline(v = 1, col = "red", lty = 2)
 par(mfrow=c(2,1))
 plot(energia2,main="Serie energia sin Transformar")
-plot(lenergia2,main="Series energia con Transformación BoxCox")
+plot(lenergia2,main="Series energia con Transformación BoxCox") # transformación logaritmica
 #### Analisis descriptivo de la base de datos energia ######
 energia3<-window(lenergia2, start = c(2004,10))
 ts_plot(energia3,title="Serie de tiempo del recaudo mensual interno",
@@ -49,13 +49,15 @@ tbl_energia_format_fecha=tbl_energia
 #tbl_energia_format_fecha$fecha=yearmonth(tbl_energia_format_fecha$fecha)
 tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
 
-tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha))
+# creo que no es necesario correr la siguiente linea pq deja la fecha como en meses
+#tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha)) # aqui me lo deja por mes
 
 tbl_energia%>%plot_time_series(.value=Energia,.date_var=fecha)#gráfica timetk
 
 
 ### Analisis de tendencia con regresion simple ####
-summary(fit_e<-lm(lenergia2~time(lenergia2),na.action=NULL))
+summary(fit_e<-lm(lenergia2~time(lenergia2),na.action=NULL)) # el r2da chiquitico, tal vez no haya tendencia 
+# preguntarle al profe si en este caso toca estimar la tendencia o que
 plot(lenergia2,ylab="Consumo de energia total.") 
 abline(fit_e,col="darkcyan",lwd=2)
 #Eliminamos la tendencia con la predicción la recta
@@ -65,8 +67,10 @@ plot(ElimiTendenerg,main="Serie energia sin tendencia",
      xlab="Tiempo",
      ylab="Consumo de energia total",
      cex.lab=0.4)
-acf(ElimiTendenerg,lag.max=179)
-
+acf(ElimiTendenerg,lag.max=179) # muestra que hay estacionalidad
+# ¿¿¿¿¿preguntar:
+acf(energia2,lag.max=179) # esto me muestra lo mismo pero sí es necesario estabilizar la varianza 
+acf(lenergia2,lag.max=179) # esto me muestra lo mismo y ya tiene bien var pero no estima la tendencia
 ###Loess para hacer el ajuste de la tendencia ####
 
 ### Descomposición filtro de promedio moviles####

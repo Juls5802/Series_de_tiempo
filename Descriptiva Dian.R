@@ -7,12 +7,13 @@ library(zoo)
 library(xts)
 library(readxl)
 library(tidyverse)
+
 ### Transformacion de box cox ####
 library(forecast)
-MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
+MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(dian2, method ="loglik",
-                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
-plot(forecast::BoxCox(dian2,lambda=0.1))
+                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1), cercano a cero o sea que vale la pena pensar en una transformación logaritmica.
+plot(forecast::BoxCox(dian2,lambda=0.1)) 
 par(mar = c(1,1,1,1))
 ldian2=log(dian2)
 
@@ -25,6 +26,7 @@ plot(ldian2,main="Series Dian con Transformación BoxCox")
 class(ldian2)
 
 dian3<-window(ldian2, start = c(2000,1))
+# Gráfico interactivo
 ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
         Ytitle="Recaudo interno",
         Xtitle="Tiempo",
@@ -43,6 +45,7 @@ Dian_1=dian %>% map_df(rev)
 Fechas=as.yearmon(Dian_1$fecha)
 Dian_xts=xts(x = Dian_1$Impuestos,frequency = 12,order.by = Fechas)
 ts_info(Dian_xts)
+par(mfrow=c(1,1))
 plot(Dian_xts)
 
 ###Creación objeto tssible a partir de un objeto tibble
@@ -73,7 +76,7 @@ acf(ElimiTenddian,lag.max=179)
 ###Loess para hacer el ajuste de la tendencia ####
 
 ### Descomposición con filtro de promedios moviles ####
-dian_decompo=decompose(ldian2)
+dian_decompo=decompose(ldian2) 
 plot(dian_decompo)
 dian_decompo$trend
 ### Descomposición STL ####
@@ -96,7 +99,7 @@ tsibble_dian_notendstl<-tsibble_dian$Log
 ## Para eliminar la tendencia con este metodo.
 ##
 
-### Aun no se que es esto pero quita tendencia (creo que hace lo mismo que al quitarla con lm) xd ####
+### Aun no se que es esto pero quita tendencia (creo que hace lo mismo que al quitarla con lm X2) xd ####
 par(mar = c(2,2,2,2))
 fitdian = lm(ldian2~time(ldian2), na.action=NULL) # Regresión sobre el tiempo igual que el objeto 
 par(mfrow=c(2,1))
@@ -105,7 +108,7 @@ plot(diff(dian2), type="l", main="Primera Diferencia") #Primera diferencia ordin
 ## Gráfico de los acf
 par(mar = c(3,2,3,2))
 par(mfrow=c(3,1)) # plot ACFs
-acf(ldian2, 60, main="ACF Dian objeto ts varianza estable por boxcox")
+acf(ldian2, 60, main="ACF Dian objeto ts varianza estable por boxcox") # la tendencia confunde resto
 acf(resid(fitdian), 60, main="ACF Sin tendencia (resid(fitdian))") 
 acf(diff(dian2), 60, main="ACF Primera Diferencia")
 #Notese que no bajan tan rapido sino que lo hacen lentico 
@@ -136,8 +139,8 @@ tseriesChaos::mutual(ldian2, partitions = 50, lag.max = 10, plot=TRUE,main="AMI 
 tseriesChaos::mutual(ElimiTenddian, partitions = 50, lag.max = 10, plot=TRUE,main="AMI sin tendencia y varianza estable ")
 
 ## Detección de cíclos y estacionalidades ####
-TSstudio::ts_heatmap(ldian2,title = "Mapa de Calor - Impuestos Dian con tendencia")
-TSstudio::ts_heatmap(ElimiTenddian,title = "Mapa de Calor - Impuestos Dian sin tendencia")
+TSstudio::ts_heatmap(ldian2,title = "Mapa de Calor - Impuestos Dian con tendencia") # no se nota la estacionalidad
+TSstudio::ts_heatmap(ElimiTenddian,title = "Mapa de Calor - Impuestos Dian sin tendencia") # si se nota la estacionalidad
 TSstudio::ts_heatmap(diff(ldian2),title = "Mapa de Calor - Impuestos Dian sin tendencia")
 
 ## Otras medidas para observar la estacionalidad.
