@@ -190,3 +190,5 @@ sprintf("El valor de la frecuencia donde se máximiza el periodograma para la se
 
 sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadldian2_sintendencia$freq[ubicacionlogdian])
 ### Modelamiento de la estacionalidad #####
+
+

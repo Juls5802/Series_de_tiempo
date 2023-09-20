@@ -50,7 +50,7 @@ tbl_energia_format_fecha=tbl_energia
 tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
 
 # creo que no es necesario correr la siguiente linea pq deja la fecha como en meses
-#tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha)) # aqui me lo deja por mes
+#tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha)) # aqui me lo deja por mes - esto no!!!!
 
 tbl_energia%>%plot_time_series(.value=Energia,.date_var=fecha)#gráfica timetk
 

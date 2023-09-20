@@ -55,76 +55,81 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
                            mainPanel(width=8,
                                      br(),
                                      HTML('<h2 style="color: blue; text-align: center;">Análisis del recaudo de impuestos internos por la DIAN</h2>'),
-                                     
-                                     #h1("Análisis del recaudo de impuestos internos por la DIAN",  align = "center"),
                                      h2("Motivación"),
                                      p("La DIAN es la entidad encargada de administrar y recaudar los impuestos 
                                         internos y aduaneros en el país. El recaudo de impuestos internos que 
                                         realiza la DIAN cada mes se refiere a la suma total de los impuestos 
                                         nacionales recaudados dentro del territorio colombiano durante ese período
                                         mensual. Los impuestos internos son aquellos que se aplican a las actividades 
-                                        económicas y transacciones que ocurren dentro del país, los impuestos internos en
-                                        Colombia pueden incluir: IVA, impuesto de renta y complementarios, impuesto de 
+                                        económicas y transacciones que ocurren dentro del país, los cuales pueden incluir: IVA, impuesto de renta y complementarios, impuesto de 
                                         timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.",
                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
                                      br(),
-                                     p("El recaudo de estos impuestos internos es esencial para financiar las actividades
-                                        gubernamentales, incluyendo la provisión de servicios públicos, la inversión en
-                                        infraestructura y el funcionamiento del gobierno. El seguimiento y la gestión 
-                                        eficiente del recaudo de impuestos internos es fundamental para mantener la 
-                                        estabilidad económica y el desarrollo del país.",
+                                     p("Con el proyecto se busca estudiar esta serie de tiempo para ver como es el comportamiento 
+                                        de los impuestos internos de Colombia a lo largo de los años, por ejemplo, encontrar patrones
+                                        y observar qué tanto han aumentado dichos impuestos.",
                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
                                      br(),
-                                     p("A Continuación se presenta la manera en la cual se realizó la carga de los datos y 
-                                       un vistaso preliminar de la serie de tiempo, a grandes razgos es posible notar que la varianza no 
-                                       es constante a lo largo del tiempo, además podemos ver que la serie presenta tendencia creciente y algunos posibles ciclos
-                                       estacionales.",
+                                     p("A continuación se presenta la manera en que se realiza la carga de los datos y 
+                                       un vistazo preliminar de la serie de tiempo.",
                                        style = "font-family: 'Bahnschrift'; font-si20pt"),
                                      verbatimTextOutput("codigo1"),
                                      h3("Serie de tiempo"),
                                      plotOutput("serie_impuesto1"),
                                      p("",
                                        style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                     h2("Transformación Box-cox"),
-                                     p("Como fue posible observar en la gráfica de la serie de tiempo
-                                       Es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo
-                                       de la serie para esto se utilizó una trasnformación de Box-cox.",
-                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                     verbatimTextOutput("boxcox1_text"),
-                                     plotOutput("boxcox1_plot_1"),
-                                     p("Notese que en este caso no se contiene al valor lambda 1, por lo tanto
-                                       es necesario realizar la transformación Box cox a los datos.",
-                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                     textOutput("boxcox1_plot_2"),br(),
-                                     p("Se obtuvo un valor de 0.1 para lambda por lo tanto se procede a realizar una transformación
-                                       logaritmica de los datos y se obtienen lo siguiente:",
-                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                     plotOutput("boxcox1_plot_3"),
-                                     
-                                     p("Se puede observar que ahora si captura al valor de lambda=1, lo cual nos indica que
-                                       no es necesario realizar ninguna transformacion extra, en la gráfica que se presenta a continuación
-                                       es posible observar la serie Dian sin y con la trasnformación Box-cox y podemos
-                                       observar que se reduce considerablemente su variabilidad.",
-                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
-                                     plotOutput("boxcox1_plot_4"),
                                      ########################Segunda Serie##################################
                                      HTML('<h2 style="color: blue; text-align: center;">Análisis del consumo de energía de la empresa PJM</h2>'),
                                      #h1("Análisis del consumo de energía de la empresa PJM",  align = "center"),
                                      h2("Motivación"),
-                                     p("PJM es una organización de transmisión regional que coordina el movimiento
-                                        de electricidad mayorista en la totalidad o parte de 13 estados y el Distrito de 
+                                     p("La empresa PJM es una organización de transmisión regional que coordina el movimiento
+                                        de electricidad mayorista en la totalidad, o parte, de 13 estados y el Distrito de 
                                         Columbia.",
                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
                                      br(),
                                      p("El análisis del consumo de energía es esencial para mejorar la eficiencia 
-                                        operativa, reducir costos, cumplir con regulaciones, promover la sostenibilidad
-                                        y mantener la competitividad en un mundo en constante cambio.",
+                                        operativa, reducir costos, cumplir con regulaciones y promover la sostenibilidad, por lo
+                                        cual, este proyecto analiza la serie de tiempo con el fin de encontrar variaciones 
+                                        en el consumo de energía de los 13 estados y el Distrito de Columbia a lo largo del 
+                                        tiempo, así como también descubrir posibles patrones.",
                                       style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                     verbatimTextOutput("codigo2"),
                                      h3("Serie de tiempo"),
                                      plotOutput("serie_energia1"),
+                                     
               ),
-),
-)))
+),),
+              tabPanel("Análisis descriptivo DIAN",
+                       mainPanel(width=8,
+                                 br(),
+                                 HTML('<h2 style="color: blue; text-align: center;">Análisis descriptivo del recaudo de impuestos internos por la DIAN</h2>'),
+                                 p("Como fue posible observar en la gráfica de la serie de tiempo
+                                       Es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo
+                                       de la serie para esto se utilizó una trasnformación de Box-cox.a grandes razgos es posible notar que la varianza no 
+                                       es constante a lo largo del tiempo, además podemos ver que la serie presenta tendencia creciente y algunos posibles ciclos
+                                       estacionales.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 verbatimTextOutput("boxcox1_text"),
+                                 plotOutput("boxcox1_plot_1"),
+                                 p("Notese que en este caso no se contiene al valor lambda 1, por lo tanto
+                                       es necesario realizar la transformación Box cox a los datos.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 textOutput("boxcox1_plot_2"),br(),
+                                 p("Se obtuvo un valor de 0.1 para lambda por lo tanto se procede a realizar una transformación
+                                       logaritmica de los datos y se obtienen lo siguiente:",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 plotOutput("boxcox1_plot_3"),
+                                 
+                                 p("Se puede observar que ahora si captura al valor de lambda=1, lo cual nos indica que
+                                       no es necesario realizar ninguna transformacion extra, en la gráfica que se presenta a continuación
+                                       es posible observar la serie Dian sin y con la trasnformación Box-cox y podemos
+                                       observar que se reduce considerablemente su variabilidad.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 plotOutput("boxcox1_plot_4"),
+                                 )
+                       ),
+              tabPanel("Análisis descriptivo Energía")
+))
 
 server<-function(input,output){
   output$codigo1 <- renderText({
@@ -158,8 +163,8 @@ server<-function(input,output){
   ####Boxcox#####
   output$boxcox1_text<-renderText({
     library(forecast)
-    "MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
-    forecast::BoxCox.lambda(dian2, method =\"loglik\",
+    MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
+    forecast::BoxCox.lambda(dian2, method ="loglik",
                             lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
     plot(forecast::BoxCox(dian2,lambda=0.1))
     par(mar = c(1,1,1,1))
@@ -167,8 +172,8 @@ server<-function(input,output){
     
     MASS::boxcox(lm(ldian2 ~ 1),seq(-5, 5, length = 50)) #Si captura al 1
     par(mfrow=c(2,1))
-    plot(dian2,main=\"Serie Dian sin Transformar\")
-    plot(ldian2,main=\"Series Dian con Transformación BoxCox\")"
+    plot(dian2,main="Serie Dian sin Transformar")
+    plot(ldian2,main="Series Dian con Transformación BoxCox")
   })
   output$boxcox1_plot_1<-renderPlot({
     MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
@@ -188,6 +193,21 @@ server<-function(input,output){
     
   })
   ###################Serie de Energia ##############
+  output$codigo2<-renderText({
+   "AEP_hourly<-read.csv(\"AEP_hourly.csv\")
+    AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = \"%Y-%m-%d %H:%M:%S\")
+    AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
+    energia <- AEP_hourly %>%
+      group_by(fecha) %>%
+      summarise(Energia = sum(AEP_MW))
+    energia<-energia[-5055,]
+    energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
+    plot(energia2, main=\"Serie de tiempo de la energía diaria de una empresa estadounidense\",
+         cex.main=1.2,
+         xlab=\"Tiempo\",
+         ylab=\"Energía consumida\",
+         cex.lab=0.4)"
+  })
   output$serie_energia1<-renderPlot({
     AEP_hourly<-read.csv("AEP_hourly.csv")
     AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
@@ -195,6 +215,7 @@ server<-function(input,output){
     energia <- AEP_hourly %>%
       group_by(fecha) %>%
       summarise(Energia = sum(AEP_MW))
+    energia<-energia[-5055,]
     energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
     plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
          cex.main=1.2,
