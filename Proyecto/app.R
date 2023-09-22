@@ -327,6 +327,7 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
 ))))
 
 server<-function(input,output){
+  
   output$codigo1 <- renderText({
     "dian<-read_excel(\"dian.xlsx\", range=\"A7:C313\", sheet = \"Rec mensual a junio 2023\" )
     años<-2000:2023

@@ -1,12 +1,4 @@
-## Instalación de paquetes ####
-library(feasts)
-library(fable)
-library(timetk)
-library(tsibble)
-library(zoo)
-library(xts)
-library(readxl)
-library(tidyverse)
+
 ### Transformacion de box cox con objeto ts####
 MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(energia2, method ="loglik",
@@ -184,8 +176,13 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadlenerg
 # El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 
 # Si ya hicimos la transformación una vez, si no se incluye el 1 toca volver a transrformar la serie con box-cox
 # Si se ve que no tiene tendencia, igual tengo que estimarla y quitarla?
-# linea 117, es normal que en la gráfica se vea tanta correlación en todos los retardos de toda la semana? 
+# linea 107, es normal que en la gráfica se vea tanta correlación en todos los retardos de toda la semana? 
 # El ami muestra que no hay tanta relación entre las variables mientras que el grafico de 117 si muestra mucha
 # Mapa de calor no es útil cierto? xq la serie es diaria
-# en 153 como se puede hacer esa grilla, y se le puede poner daily en vez de hourly
+# en 145 como se puede hacer esa grilla, y se le puede poner daily en vez de hourly
+
+
+# Tareas
+# Xq no se ven las gráficas del shiny?
+# Volver a energia un xts
 

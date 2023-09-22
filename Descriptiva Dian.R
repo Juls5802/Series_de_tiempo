@@ -1,15 +1,4 @@
-## Instalación de paquetes ####
-library(feasts)
-library(fable)
-library(timetk)
-library(tsibble)
-library(zoo)
-library(xts)
-library(readxl)
-library(tidyverse)
-
-### Transformacion de box cox ####
-library(forecast)
+#### Transformacion de box cox ####
 MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(dian2, method ="loglik",
                         lower = -1, upper = 3)#Entrega el valor de lambda (0.1), cercano a cero o sea que vale la pena pensar en una transformación logaritmica.
@@ -80,9 +69,7 @@ dian_decompo=decompose(ldian2)
 plot(dian_decompo)
 dian_decompo$trend
 ### Descomposición STL ####
-##Algunas librerias
-library(feasts)
-library(fable)
+
 ### Gráfico ##
 tsibble_dian<-as_tsibble(ldian2)
 str(tsibble_dian)
@@ -145,8 +132,7 @@ TSstudio::ts_heatmap(diff(ldian2),title = "Mapa de Calor - Impuestos Dian sin te
 
 ## Otras medidas para observar la estacionalidad.
 ## Con la serie con tendencia y varianza estable
-library(dplyr)
-library(plotly)
+
 dian2_df <- data.frame(year = floor(time(ldian2)), month = cycle(ldian2),ldian2 = as.numeric(ldian2))
 dian2_df$month <- factor(month.abb[dian2_df$month], levels = month.abb)
 dian2_summary <- dian2_df %>%group_by(month) %>%summarise(mean= mean(ldian2),sd = sd(ldian2))
