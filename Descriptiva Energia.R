@@ -16,10 +16,10 @@ par(mar = c(1,1,1,1))
 lenergia2=log(energia2)
 MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length =  50))#Si captura al 1 auqnue por pqouito, toca preguntarle al profe que hacer ahí 
 abline(v = 1, col = "red", lty = 2)
-par(mfrow=c(2,1))
-plot(energia2,main="Serie energia sin Transformar",cex.main=0.8,cex.axis=0.5)
-plot(lenergia2,main="Series energia con Transformación BoxCox",cex.main=0.8) # transformación logaritmica
-#### Analisis descriptivo de la base de datos energia ######
+par(mfrow=c(2,1),mar=c(5,3,3,3))
+plot(energia2,main="Serie energía sin Transformar",cex.main=1)
+plot(lenergia2,main="Series energía con Transformación BoxCox",cex.main=1) # transformación logaritmica
+#### Analisis descriptivo de la base de datos energia sin varianza ######
 energia3<-window(lenergia2, start = c(2004,10))
 ts_plot(energia3,title="Serie de tiempo del recaudo mensual interno",
         Ytitle="Recaudo interno",
@@ -34,12 +34,13 @@ require(timetk)
 require(tsibble)
 require(lubridate)
 #Objeto tibble
-energia_1=energia %>% map_df(rev)
+energia_1=energia %>% map_df(rev) # Queden ordenados
 
 #Fechas=as.yearmon(energia_1$fecha)
 Fechas=as.Date(energia_1$fecha)
 energia_xts=xts(x = energia_1$Energia,frequency = 365.25,order.by = Fechas)
 ts_info(energia_xts)
+par(mfrow= c(1,1))
 plot(energia_xts)
 
 ###Creación objeto tssible a partir de un objeto tibble#####
@@ -84,16 +85,16 @@ library(fable)
 ### Gráfico ##
 
 tsibble_energia<-as_tsibble(lenergia2)
-tsibble_energia <- tsibble_energia %>%
-  fill_gaps()
+#tsibble_energia <- tsibble_energia %>%
+#  fill_gaps()
 str(tsibble_energia)
-tsibble_energia %>%
-  model(
-    STL(value ~ trend() +
-          season(window = "periodic"),
-        robust = TRUE)) %>%
-  components() %>%
-  autoplot()
+#tsibble_energia %>%
+#  model(
+#    STL(value ~ trend() +
+#          season(window = "periodic"),
+#        robust = TRUE)) %>%
+#  components() %>%
+#  autoplot()
 ### Aun no se que es esto pero quita tendencia xd ####
 par(mar = c(2,2,2,2))
 fit_e = lm(lenergia2~time(lenergia2), na.action=NULL) # Regresión sobre el tiempo
@@ -117,7 +118,7 @@ ts_info(ElimiTendenerg)
 par(mar = c(3, 2, 3, 2))
 astsa::lag1.plot(ElimiTendenerg, 7,corr=F)
 
-ts_lags(ElimiTendenerg,lags=1:7)
+#ts_lags(ElimiTendenerg,lags=1:7)
 ## Preguntarle al profe cual es el valor que debe ir en la funcion astsa
 ## Preguntar si estos graficos se hacen sin tendencia.
 ##ACF y PACF #####
@@ -128,9 +129,9 @@ acf(resid(fit_e ), 48, main="Energia la otra forma de quitar tendencia")
 acf(diff(lenergia2),48,main="Energia diferenciación")
 ## Indice AMI 
 library(nonlinearTseries)
-library(tseriesChaos)
-tseriesChaos::mutual(lenergia2, partitions = 50, lag.max = 10, plot=TRUE)
-tseriesChaos::mutual(ElimiTendenerg, partitions = 50, lag.max = 10, plot=TRUE)
+library(tseriesChaos) 
+tseriesChaos::mutual(lenergia2, partitions = 50, lag.max = 10, plot=TRUE) # AMI serie con tendencia
+tseriesChaos::mutual(ElimiTendenerg, partitions = 50, lag.max = 10, plot=TRUE) # AMI serie sin tendencia con modelo lineal
 
 ## Detección de cíclos y estacionalidades (no está funcionando) ####
 energia3<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
@@ -145,14 +146,19 @@ require(feasts)
 require(tsibble)
 require(plotly)
 
-view(energia2)
-energia_df <- data.frame(time = zoo::index(lenergia2), energia=as.numeric(lenergia2))
-str(energia_df)
+View(energia2)
+#str(energia_df)
+#energia_df<- data.frame(year = floor(time(lenergia2)), day = cycle(lenergia2),lenergia2 = as.numeric(lenergia2))
+#energia_df$hour <- hour(energia$fecha) 
+energia_xts <- extract_grid(type = "xts",
+                           columns = "ND",
+                           aggregate = "hourly",
+                           na.rm = TRUE)
+energia_df <- data.frame(time = zoo::index(energia_xts), energia=as.numeric(energia_xts ))
 
-energia_df$hour <- hour(energia$fecha)
-energia_df$weekday <- wday(energia_df$fecha, label = TRUE, abbr = TRUE)
-UKgrid_df$month <- factor(month.abb[month(UKgrid_df$time)], levels =   month.abb)
-head(UKgrid_df)
+energia_df$weekday <- wday(energia_df$time)
+energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+head(energia_df)
 ## Usando regresión para descubrir un ciclo (periodograma) ####
 ##Periodograma 
 #con tendencia 
@@ -173,3 +179,13 @@ ubicacionlogenergia=which.max(Periodgramadlenergia2_sintendencia$spec)
 sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
 
 sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
+
+# Preguntas profe ####
+# El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 
+# Si ya hicimos la transformación una vez, si no se incluye el 1 toca volver a transrformar la serie con box-cox
+# Si se ve que no tiene tendencia, igual tengo que estimarla y quitarla?
+# linea 117, es normal que en la gráfica se vea tanta correlación en todos los retardos de toda la semana? 
+# El ami muestra que no hay tanta relación entre las variables mientras que el grafico de 117 si muestra mucha
+# Mapa de calor no es útil cierto? xq la serie es diaria
+# en 153 como se puede hacer esa grilla, y se le puede poner daily en vez de hourly
+
