@@ -13,7 +13,7 @@ library(dplyr)
 library(lubridate)
 library(astsa)
 
-setwd("C:/Users/andre/OneDrive/Escritorio/Andrés/2023-2/Series de tiempo/Proyecto")
+#setwd("C:/Users/andre/OneDrive/Escritorio/Andrés/2023-2/Series de tiempo/Proyecto")
 
 #### Base de datos de la DIAN#####
 dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )

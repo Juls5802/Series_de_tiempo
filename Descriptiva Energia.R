@@ -10,7 +10,7 @@ library(tidyverse)
 ### Transformacion de box cox con objeto ts####
 MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(energia2, method ="loglik",
-                        lower = -1, upper = 3)#Entrega el valor de lambda (0.35).
+                        lower = -1, upper = 3)#Entrega el valor de lambda (-0.25).
 plot(forecast::BoxCox(energia2,lambda=-0.25))  # ¿¿¿tocaria hacer la transformación logaritmica??
 par(mar = c(1,1,1,1))
 lenergia2=log(energia2)

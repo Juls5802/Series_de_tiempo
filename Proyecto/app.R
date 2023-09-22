@@ -143,8 +143,8 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
                                  plotOutput("boxcox1_plot_3"),
                                  
                                  p("Se puede observar que el valor de lambda ahora sí captura a 1, lo cual nos indica que
-                                    no es necesario realizar ninguna transformacion extra. En la gráfica que se presenta 
-                                    a continuación es posible observar la serie Dian sin y con la trasnformación Box-cox, 
+                                    no es necesario realizar ninguna transformación adicional. En la gráfica que se presenta 
+                                    a continuación es posible observar la serie Dian sin y con la transformación Box-cox, 
                                     y podemos observar que se reduce considerablemente su variabilidad.",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  plotOutput("boxcox1_plot_4"),
