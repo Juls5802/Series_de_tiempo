@@ -1,0 +1,58 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Análisis de series de tiempo",
+    "section": "",
+    "text": "Introducción"
+  },
+  {
+    "objectID": "index.html#esquina",
+    "href": "index.html#esquina",
+    "title": "Análisis de series de tiempo",
+    "section": "Esquina",
+    "text": "Esquina\nEste trabajo realiza un análisis de dos bases de datos: Recaudo de impuestos internos por la DIAN para los años 2000 a 2023 y consumo de energía por horas de la organización regional de transmisión PJM Interconnection para los años 2004 a 2018. El análisis se desarrolla de forma estadística, realizando la parte descriptiva con su correspondiente interpretación."
+  },
+  {
+    "objectID": "index.html#análisis-del-recaudo-de-impuestos-internos-por-la-dian",
+    "href": "index.html#análisis-del-recaudo-de-impuestos-internos-por-la-dian",
+    "title": "Análisis de series de tiempo",
+    "section": "Análisis del recaudo de impuestos internos por la DIAN",
+    "text": "Análisis del recaudo de impuestos internos por la DIAN\nLa DIAN es la entidad encargada de administrar y recaudar los impuestos internos y aduaneros en el país. El recaudo de impuestos internos que realiza la DIAN cada mes se refiere a la suma total de los impuestos nacionales recaudados dentro del territorio colombiano durante ese período mensual. Los impuestos internos son aquellos que se aplican a las actividades económicas y transacciones que ocurren dentro del país, los cuales pueden incluir: IVA, impuesto de renta y complementarios, impuesto de timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.\nCon el proyecto se busca estudiar esta serie de tiempo para ver como es el comportamiento de los impuestos internos de Colombia a lo largo de los años, por ejemplo, encontrar patrones y observar qué tanto han aumentado dichos impuestos.\nA continuación se presenta la manera en que se realiza la carga de los datos y un vistazo preliminar de la serie de tiempo.\n\n\n\n\n#### Base de datos de la DIAN #####\ndian<-read_excel(\"dian.xlsx\", range=\"A7:C313\", sheet = \"Rec mensual a junio 2023\" )\naños<-2000:2023\ndian<-dplyr::filter(dian,Año %in% años)\ncolnames(dian)<-c(\"Año\",\"Mes\",\"Impuestos\")\ndian$fecha<-as.Date(paste(dian$Año, dian$Mes, \"1\", sep = \"-\"), format = \"%Y-%B-%d\")\ndian<-dian[,3:4]\n\n## Serie de tiempo de la DIAN ##\ndian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)\nplot(dian2, main=\"Serie de tiempo del recaudo mensual interno\",\n     cex.main=1.3,\n     xlab=\"Tiempo\",\n     ylab=\"Recaudo interno\",\n     cex.lab=0.4)"
+  },
+  {
+    "objectID": "Descriptivo Dian.html",
+    "href": "Descriptivo Dian.html",
+    "title": "1  Introduction",
+    "section": "",
+    "text": "This is a book created from markdown and executable code.\nSee Knuth (1984) for additional discussion of literate programming.\n\n1 + 1\n\n[1] 2\n\n\n\n\n\n\nKnuth, Donald E. 1984. «Literate Programming». Comput. J. 27 (2): 97-111. https://doi.org/10.1093/comjnl/27.2.97."
+  },
+  {
+    "objectID": "Descriptivo Energia.html",
+    "href": "Descriptivo Energia.html",
+    "title": "2  Análisis descriptivo Energía",
+    "section": "",
+    "text": "In summary, this book has no content whatsoever.\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "references.html",
+    "href": "references.html",
+    "title": "References",
+    "section": "",
+    "text": "Knuth, Donald E. 1984. “Literate Programming.” Comput.\nJ. 27 (2): 97–111. https://doi.org/10.1093/comjnl/27.2.97."
+  },
+  {
+    "objectID": "Descriptivo Dian.html#estabilización-de-la-varianza-marginal",
+    "href": "Descriptivo Dian.html#estabilización-de-la-varianza-marginal",
+    "title": "1  Análisis descriptivo del recaudo de impuestos internos por la DIAN",
+    "section": "1.1 Estabilización de la varianza marginal",
+    "text": "1.1 Estabilización de la varianza marginal\nComo se observa en la gráfica de la serie de tiempo es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, para esto se utilizó una transformación de Box-cox.\n\n\n\n\nMASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1\n\n\n\nforecast::BoxCox.lambda(dian2, method =\"loglik\",\n                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1), cercano a cero o sea que vale la pena pensar en una transformación logaritmica.\n\n[1] 0.1\n\nplot(forecast::BoxCox(dian2,lambda=0.1))"
+  },
+  {
+    "objectID": "index.html#análisis-del-consumo-de-energía-de-la-empresa-pjm",
+    "href": "index.html#análisis-del-consumo-de-energía-de-la-empresa-pjm",
+    "title": "Análisis de series de tiempo",
+    "section": "Análisis del consumo de energía de la empresa PJM",
+    "text": "Análisis del consumo de energía de la empresa PJM\nLa empresa PJM es una organización de transmisión regional que coordina el movimiento de electricidad mayorista en la totalidad, o parte, de 13 estados y el Distrito de Columbia.\nEl análisis del consumo de energía es esencial para mejorar la eficiencia operativa, reducir costos, cumplir con regulaciones y promover la sostenibilidad, por lo cual, este proyecto analiza la serie de tiempo con el fin de encontrar variaciones en el consumo de energía de los 13 estados y el Distrito de Columbia a lo largo del tiempo, así como también descubrir posibles patrones.\n\n#### Base de datos de energia ####\nAEP_hourly<-read.csv(\"AEP_hourly.csv\")\nAEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = \"%Y-%m-%d %H:%M:%S\")\nAEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)\n\nenergia <- AEP_hourly %>%\n  group_by(fecha) %>%\n  summarise(Energia = sum(AEP_MW))\nenergia<-energia[-5055,]\n\n## Serie de tiempo de la energia ##\nenergia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)\nplot(energia2, main=\"Serie de tiempo de la energía diaria de una empresa estadounidense\",\n     cex.main=1.3,\n     xlab=\"Tiempo \",\n     ylab=\"Energía consumida\",\n     cex.lab=0.4)\n\n\n\nplot(as.ts(energia$Energia))"
+  }
+]
