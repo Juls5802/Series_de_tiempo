@@ -1,4 +1,3 @@
-install.packages("dygraphs")
 library(tsibble)
 library(fable)
 library(plotly)
@@ -26,6 +25,7 @@ library(shiny)
 library(shinythemes)
 library(shinyjs)
 library(shinyWidgets)
+library(dygraphs)
 
 ui<-fluidPage(title="Proyecto Series de Tiempo",
               theme=shinytheme("journal"),
@@ -112,37 +112,40 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
                                  br(),
                                  HTML('<h2 style="color: blue; text-align: center;">Análisis descriptivo del recaudo de impuestos internos por la DIAN</h2>'),
                                  #--------------------------------------------------------------------
-                                 p("Según lo observado en el gráfico de la serie, visualmente se tiene que: ",
+                                 p("Según lo observado en la serie de tiempo, visualmente se tiene: ",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  tags$ul(
-                                   tags$li(HTML("<b>Heterocedasticidad Marginal:</b> A simple vista se observa que el rango de valor de las variables que va tomando
-                                                la serie se hace mayor conforme el tiempo aumenta, por lo tanto surge la necesidad
-                                                de realizar una transformación Box-cox.")),
-                                   tags$li(HTML("<b>Tendencia:</b> Se observa que la serie sigue un patron ascendente que no fluctua al rededor de un mismo valor,
-                                                Es necesario estimar dicha tendencia y posteriormente eliminarla para poder continuar con el 
+                                   tags$li(HTML("<b>Heterocedasticidad marginal:</b> Se puede observar que la varianza de cada instante en
+                                                la serie no es la misma, a medida que pasa el tiempo esta va aumentanto, por lo tanto surge la 
+                                                necesidad de realizar una transformación Box-cox.")),
+                                   tags$li(HTML("<b>Tendencia:</b> A simple vista se observa que, a medida que pasa el 
+                                                tiempo, la serie oscila al rededor de valores cada vez más grandes, por lo tanto, es 
+                                                necesario estimar la tendencia y posteriormente eliminarla para poder continuar con el 
                                                 análisis de la serie.")),
-                                   tags$li(HTML("<b>Componente Estacional:</b> Se observan algunos patrones que se repiten con cierta periodicidad (posiblemente 12),
-                                                pero antes de concluir lo anterior debemos estimar estos posibles comportamiento estacionales."))
+                                   tags$li(HTML("<b>Componente estacional:</b> Se observan algunos patrones que se repiten con cierta 
+                                                periodicidad (posiblemente cada año), lo cual hace que sea necesario estimar posibles 
+                                                comportamientos estacionales."))
                                  ),
                                  h2("Estabilización de la varianza marginal"),
-                                 p("Como fue posible observar en la gráfica de la serie de tiempo
-                                       es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo
-                                       de la serie para esto se utilizó una trasnformación de Box-cox.",
+                                 p("Como se observa en la gráfica de la serie de tiempo es necesario realizar una estabilización
+                                   de la varianza para continuar con el análisis descriptivo,  para esto se utilizó una 
+                                   trasnformación de Box-cox.",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  verbatimTextOutput("boxcox1_text"),
                                  plotOutput("boxcox1_plot_1"),
-                                 p("Notese que en este caso no se contiene al valor lambda 1, por lo tanto
+                                 p("Nótese que en este caso no se contiene al valor lambda 1, por lo tanto
                                        es necesario realizar la transformación Box-cox a los datos.",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  textOutput("boxcox1_plot_2"),br(),
-                                 p("Se obtuvo un valor de 0.1 para lambda por lo tanto se procede a obtener el logaritmo de los datos y se obtienen lo siguiente:",
+                                 p("Se obtuvo un valor de 0.1 para lambda por lo tanto se procede a obtener el logaritmo 
+                                   de los datos y se obtiene lo siguiente:",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  plotOutput("boxcox1_plot_3"),
                                  
-                                 p("Se puede observar que ahora si captura al valor de lambda=1, lo cual nos indica que
-                                       no es necesario realizar ninguna transformacion extra, en la gráfica que se presenta a continuación
-                                       es posible observar la serie Dian sin y con la trasnformación Box-cox y podemos
-                                       observar que se reduce considerablemente su variabilidad.",
+                                 p("Se puede observar que el valor de lambda ahora sí captura a 1, lo cual nos indica que
+                                    no es necesario realizar ninguna transformacion extra. En la gráfica que se presenta 
+                                    a continuación es posible observar la serie Dian sin y con la trasnformación Box-cox, 
+                                    y podemos observar que se reduce considerablemente su variabilidad.",
                                    style = "font-family: 'Bahnschrift'; font-si20pt"),
                                  plotOutput("boxcox1_plot_4"),
                                  #--------------------------------------------------------------------
@@ -272,8 +275,56 @@ ui<-fluidPage(title="Proyecto Series de Tiempo",
                                  )#
                        ),        
                                   
-              tabPanel("Análisis descriptivo Energía")
-))
+              tabPanel("Análisis descriptivo Energía",
+                       mainPanel(width=12,
+                                 br(),
+                                 HTML('<h2 style="color: blue; text-align: center;">Análisis descriptivo del consumo de energía de la empresa PJM</h2>'),
+                                 #--------------------------------------------------------------------)
+                                 p("Según lo observado en la serie de tiempo, visualmente se tiene: ",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 tags$ul(
+                                   tags$li(HTML("<b>Heterocedasticidad marginal:</b> Se puede observar que la varianza de cada instante en la 
+                                                serie no es la misma, a medida que pasa el tiempo esta va aumentanto, por lo tanto surge la 
+                                                necesidad de realizar una transformación Box-cox.")),
+                                   tags$li(HTML("<b>Tendencia:</b> Aunque no sea evidencie que a medida que pasa el tiempo, la serie oscila 
+                                                al rededor de valores cada vez más grandes o más pequeños, se estima la tendencia
+                                                y posteriormente se  elimina para poder continuar con el análisis de la serie. ")),
+                                   tags$li(HTML("<b>Componente Estacional:</b> Se observan algunos patrones que se repiten con cierta periodicidad,
+                                                (la cual no es tan evidente), lo cual hace que sea necesario estimar posibles comportamientos estacionales.")),
+                                  ),
+                                 h2("Estabilización de la varianza marginal"),
+                                 p("Como se observa en la gráfica de la serie de tiempo es necesario realizar una estabilización
+                                    de la varianza para continuar con el análisis descriptivo,  para esto se utilizó una 
+                                    trasnformación de Box-cox.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 verbatimTextOutput("boxcox_ener_text"),
+                                 plotOutput("boxcox_ener_plot_1"),
+                                 p("Notese que en este caso no se contiene al valor lambda 1, por lo tanto es necesario 
+                                    realizar la transformación Box-cox a los datos.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 textOutput("boxcox_ener_plot_2"),br(),
+                                 p("Se obtuvo un valor de -0.25 para lambda por lo tanto se procede a obtener el logaritmo 
+                                   de los datos y se obtiene lo siguiente:",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 plotOutput("boxcox_ener_plot_3"),
+                                 p("Se puede observar que el valor de lambda ahora sí captura a 1, lo cual nos indica que
+                                    no es necesario realizar ninguna transformacion extra. En la gráfica que se presenta 
+                                    a continuación es posible observar la serie Dian sin y con la trasnformación Box-cox, 
+                                    y podemos observar que se reduce considerablemente su variabilidad. revisar si si contiene a 1xq nunca pude ver el grafico yy queda un titulo sobre otro horrible",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 plotOutput("boxcox1_plot_4"),
+                                 #--------------------------------------------------------------------
+                                 verbatimTextOutput("Serienotend_1_ener"),
+                                 dygraphOutput("Serienovar_plot_1_ener"),
+                                 h2("Estimación de la tendencia."),
+                                 p("Al observa el gráfico de la serie de tiempo con su varianza marginal estable,
+                                   es posible observar que esta presenta tendencia es decir que su valor medio no fluctua al rededor de un valor,
+                                   por lo tanto procederemos a estimarla
+                                   para poder eliminarla y asi continuar realizando nuestro análisis, en primer lugar se presentará
+                                   un gráfico que estima de modo preliminar la tendencia de nuestra serie.",
+                                   style = "font-family: 'Bahnschrift'; font-si20pt"),
+                                 
+))))
 
 server<-function(input,output){
   output$codigo1 <- renderText({
@@ -285,7 +336,7 @@ server<-function(input,output){
     dian<-dian[,3:4]
     dian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)
     plot(dian2, main=\"Serie de tiempo del recaudo mensual interno\",
-         cex.main=1.3,
+         cex.main=1,
          xlab=\"Tiempo\",
          ylab=\"Recaudo interno\",
          cex.lab=0.4)"
@@ -299,7 +350,7 @@ server<-function(input,output){
     dian<-dian[,3:4]
     dian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)
     plot(dian2, main="Serie de tiempo del recaudo mensual interno",
-         cex.main=1.3,
+         cex.main=1,
          xlab="Tiempo",
          ylab="Recaudo interno",
          cex.lab=0.4)
@@ -307,14 +358,14 @@ server<-function(input,output){
   ####Boxcox#####
   output$boxcox1_text<-renderText({
     "library(forecast)
-    MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
+    MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) 
     forecast::BoxCox.lambda(dian2, method =\"loglik\",
-                            lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
+                            lower = -1, upper = 3)
     plot(forecast::BoxCox(dian2,lambda=0.1))
     par(mar = c(1,1,1,1))
     ldian2=log(dian2)
     
-    MASS::boxcox(lm(ldian2 ~ 1),seq(-5, 5, length = 50)) #Si captura al 1
+    MASS::boxcox(lm(ldian2 ~ 1),seq(-5, 5, length = 50)) 
     par(mfrow=c(2,1))
     plot(dian2,main=\"Serie Dian sin Transformar\")
     plot(ldian2,main=\"Series Dian con Transformación BoxCox\")"
@@ -336,6 +387,7 @@ server<-function(input,output){
     plot(ldian2,main="Series Dian con Transformación BoxCox")
     
   })
+  
   output$Serienotend_1 <- renderText({
     "dian3<-window(ldian2, start = c(2000,1))
 ts_plot(dian3,title=\"Serie de tiempo del recaudo mensual interno\",
@@ -567,8 +619,8 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadldian2
       summarise(Energia = sum(AEP_MW))
     energia<-energia[-5055,]
     energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
-    plot(energia2, main=\"Serie de tiempo de la energía diaria de una empresa estadounidense\",
-         cex.main=1.2,
+    plot(energia2, main=\"Serie de tiempo de la energía diaria consumida\",
+         cex.main=1,
          xlab=\"Tiempo\",
          ylab=\"Energía consumida\",
          cex.lab=0.4)"
@@ -582,23 +634,73 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadldian2
       summarise(Energia = sum(AEP_MW))
     energia<-energia[-5055,]
     energia2<-ts(energia$Energia,start=c(2004,10),frequency=365)
-    plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
-         cex.main=1.2,
+    plot(energia2, main="Serie de tiempo de la energía diaria consumida",
+         cex.main=1,
          xlab="Tiempo ",
          ylab="Energía consumida",
          cex.lab=0.4)
   })
-
+  
+  output$boxcox_ener_text<-renderText({
+    "library(forecast)
+    MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50))
+    forecast::BoxCox.lambda(energia2, method =\"loglik\",
+                        lower = -1, upper = 3)
+    plot(forecast::BoxCox(energia2,lambda=-0.25))  
+    par(mar = c(1,1,1,1))
+    lenergia2=log(energia2)
+    MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length = 50))
+    abline(v = 1, col = \"red\", lty = 2)
+    par(mfrow=c(2,1))
+    plot(energia2,main=\"Serie energia sin Transformar\")
+    plot(lenergia2,main=\"Series energia con Transformación BoxCox\")"
+  })
+  output$boxcox_ener_plot_1<-renderPlot({
+    MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50))
+  })
+  output$boxcox_ener_plot_2<-renderPrint({
+    forecast::BoxCox.lambda(energia2, method ="loglik",
+                            lower = -1, upper = 3)
+  })
+  output$boxcox_ener_plot_3<-renderPlot({
+    MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length = 50))
+    abline(v = 1, col = "red", lty = 2)
+  })
+  output$boxcox_ener_plot_4<-renderPlot({
+    par(mfrow=c(2,1))
+    plot(energia2,main="Serie energia sin Transformar")
+    plot(lenergia2,main="Series energia con Transformación BoxCox")
+  })
+  
+  output$Serienotend_1 <- renderText({
+    "dian3<-window(ldian2, start = c(2000,1))
+ts_plot(dian3,title=\"Serie de tiempo del recaudo mensual interno\",
+        Ytitle=\"Recaudo interno\",
+        Xtitle=\"Tiempo\",
+        Xgrid=TRUE,
+        Ygrid=TRUE)
+dygraph(dian3,main=\"Serie de tiempo del recaudo mensual interno\",
+            ylab=\"Recaudo interno\",
+            xlab=\"Tiempo\")"
+  })
+  output$Serienovar_plot_1<-renderDygraph({
+    dian3<-window(ldian2, start = c(2000,1))
+    dygraph(dian3,main="Serie de tiempo del recaudo mensual interno",
+            ylab="Recaudo interno",
+            xlab="Tiempo")
+    #ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
+    #Ytitle="Recaudo interno",
+    #Xtitle="Tiempo",
+    #Xgrid=TRUE,
+    #Ygrid=TRUE)
+    
+  })
 }
 
-# Run the application 
+
 shinyApp(ui = ui, server = server)
 
-
-#GitHUB access
-#rsconnect::deployApp()
-#options(rsconnect.max.bundle.size = 3145728000)
-#runGitHub( "SeriesTemporaisUnicamp", "JuanPabloMonDi")
-
+# Preguntas ####
+# Si en la serie de energia el lambda del boxcox dio 0.35 podemos aproximar a 0, y usar log?
 
 

@@ -40,6 +40,7 @@ AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
 energia <- AEP_hourly %>%
   group_by(fecha) %>%
   summarise(Energia = sum(AEP_MW))
+energia<-energia[-5055,]
 
 ## Serie de tiempo de la energia ######
 energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)

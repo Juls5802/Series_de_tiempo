@@ -11,14 +11,14 @@ library(tidyverse)
 MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1
 forecast::BoxCox.lambda(energia2, method ="loglik",
                         lower = -1, upper = 3)#Entrega el valor de lambda (0.35).
-plot(forecast::BoxCox(energia2,lambda=0.35))  # ¿¿¿tocaria hacer la transformación logaritmica??
+plot(forecast::BoxCox(energia2,lambda=-0.25))  # ¿¿¿tocaria hacer la transformación logaritmica??
 par(mar = c(1,1,1,1))
 lenergia2=log(energia2)
-MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length = 50))#Si captura al 1 auqnue por pqouito, toca preguntarle al profe que hacer ahí 
+MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length =  50))#Si captura al 1 auqnue por pqouito, toca preguntarle al profe que hacer ahí 
 abline(v = 1, col = "red", lty = 2)
 par(mfrow=c(2,1))
-plot(energia2,main="Serie energia sin Transformar")
-plot(lenergia2,main="Series energia con Transformación BoxCox") # transformación logaritmica
+plot(energia2,main="Serie energia sin Transformar",cex.main=0.8,cex.axis=0.5)
+plot(lenergia2,main="Series energia con Transformación BoxCox",cex.main=0.8) # transformación logaritmica
 #### Analisis descriptivo de la base de datos energia ######
 energia3<-window(lenergia2, start = c(2004,10))
 ts_plot(energia3,title="Serie de tiempo del recaudo mensual interno",
