@@ -138,19 +138,41 @@ require(feasts)
 require(tsibble)
 require(plotly)
 
-View(energia2)
+
 #str(energia_df)
 #energia_df<- data.frame(year = floor(time(lenergia2)), day = cycle(lenergia2),lenergia2 = as.numeric(lenergia2))
 #energia_df$hour <- hour(energia$fecha) 
-energia_xts <- extract_grid(type = "xts",
-                           columns = "ND",
-                           aggregate = "hourly",
-                           na.rm = TRUE)
-energia_df <- data.frame(time = zoo::index(energia_xts), energia=as.numeric(energia_xts ))
+#energia_xts <- extract_grid(type = "xts",
+#                           columns = "ND",
+#                           aggregate = "hourly",
+#                           na.rm = TRUE)
+#energia_df <- data.frame(time = zoo::index(energia_xts), energia=as.numeric(energia_xts ))
 
-energia_df$weekday <- wday(energia_df$time)
+#energia_df$weekday <- wday(energia_df$time)
+#energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+#head(energia_df)
+
+energiasss<-rbind(energia,c("2018-08-03",0))
+energia_df1<-energiasss
+energia_df1$time = as.POSIXct(energia_df1$fecha, "%Y-%m-%d")
+energia_df<-cbind(energia_df1[1:5054,1:2],energia_df1[2:5055,3])
+
+library(lubridate)
+#UKgrid_df$hour <- hour(UKgrid_df$time)
+energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
 head(energia_df)
+tail(energia_df)
+
+energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("wday.lbl"),.geom="boxplot")
+
+energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("month.lbl"),.geom="boxplot")
+
+# pendiente energia_df%>%gg_subseries(ND,period=7)
+
+
+
+
 ## Usando regresión para descubrir un ciclo (periodograma) ####
 ##Periodograma 
 #con tendencia 
