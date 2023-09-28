@@ -1,6 +1,6 @@
 # Introducción {.unnumbered}
 
-## Esquina
+## Sobre el trabajo
 
 Este trabajo realiza un análisis de dos bases de datos: Recaudo de impuestos internos por la DIAN para los años 2000 a 2023 y consumo de energía por horas de la organización regional de transmisión PJM Interconnection para los años 2004 a 2018. El análisis se desarrolla de forma estadística, realizando la parte descriptiva con su correspondiente interpretación.
 
@@ -12,7 +12,7 @@ Con el proyecto se busca estudiar esta serie de tiempo para ver como es el compo
 
 A continuación se presenta la manera en que se realiza la carga de los datos y un vistazo preliminar de la serie de tiempo.
 
-``` {r}
+```{r}
 #| warning: false
 #| echo: false
 library(TSstudio)
@@ -32,7 +32,7 @@ library(forecast)
 library(plotly)
 ```
 
-``` {r}
+```{r}
 #### Base de datos de la DIAN #####
 dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
 años<-2000:2023
@@ -56,7 +56,7 @@ La empresa PJM es una organización de transmisión regional que coordina el mov
 
 El análisis del consumo de energía es esencial para mejorar la eficiencia operativa, reducir costos, cumplir con regulaciones y promover la sostenibilidad, por lo cual, este proyecto analiza la serie de tiempo con el fin de encontrar variaciones en el consumo de energía de los 13 estados y el Distrito de Columbia a lo largo del tiempo, así como también descubrir posibles patrones.
 
-``` {r}
+```{r}
 #### Base de datos de energia ####
 AEP_hourly<-read.csv("AEP_hourly.csv")
 AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
