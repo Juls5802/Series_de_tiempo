@@ -23,7 +23,7 @@ Se puede ver que el intervalo no captura al 1, lo que es un indício para pensar
 forecast::BoxCox.lambda(energia2, method ="loglik",lower = -1, upper = 3)
 ```
 
-En la gráfica a continuación se muestra nuevamente que no se contiene el 1, lo que significa que es necesaria otra transformación.  
+En la gráfica a continuación se muestra nuevamente que no se contiene el 1, lo que significa que es necesaria otra transformación.
 
 ```{r}
 lenergia2=log(energia2)
@@ -32,6 +32,7 @@ abline(v = 1, col = "red", lty = 2)
 ```
 
 Sin embargo, en la gráfica siguiente se puede ver que la varianza fue medianamente estabilizada por lo que no se estabilizará de nuevo.
+
 ```{r}
 par(mar = c(1,1,1,1))
 par(mfrow=c(2,1),mar=c(3,3,3,3))
@@ -40,8 +41,6 @@ plot(lenergia2,main="Serie energía con Transformación BoxCox",cex.main=1)
 ```
 
 ## Estimación preliminar de la tendencia
-
-
 
 ```{r}
 
