@@ -161,6 +161,7 @@ library(lubridate)
 #UKgrid_df$hour <- hour(UKgrid_df$time)
 energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+
 head(energia_df)
 tail(energia_df)
 
@@ -170,13 +171,33 @@ energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.featur
 
 # pendiente energia_df%>%gg_subseries(ND,period=7)
 
+gg_subseries(tsbl_energia,y=Energia,period=7)
+
+gg_subseries(tsbl_energia,y=Energia,period=12)
+
+#dx=diff(energia2)
+#library(reshape2)
+#df <- data.frame(Energia= melt(dx)$value)
+#Fechas_1=as.data.frame(Fechas) %>% map_df(rev)
+#head(Fechas_1)
+#str(Fechas_1)
+#Fechas_1=as.data.frame(Fechas_1)
+#Fechas_1=Fechas_1[-5054,]
+#df<-cbind(df,Fechas_1)
 
 
+#tbl_dif=tibble(df)
+#head(tbl_dif)
+#tbl_dif_format_fecha=tbl_dif
+#tsbl_energia_dif=as_tsibble(tbl_dif,index=Fechas_1)
+
+# No corre: :c
+#gg_subseries(tsbl_energia_dif,y=Energia,period=7)
 
 ## Usando regresión para descubrir un ciclo (periodograma) ####
 ##Periodograma 
 #con tendencia 
-spectrum(lenergia2,log='no')
+spectrum(as.numeric(energia2),log='no')
 abline(v=1/365, lty=2,col="red")
 spectrum(lenergia2,log='no',span=5)
 spectrum(lenergia2,log='no',span=c(5,5))
@@ -188,11 +209,11 @@ spectrum(ElimiTendenerg,log='no',span=5)
 spectrum(ElimiTendenerg,log='no',span=c(5,5))
 spectrum(ElimiTendenerg,log='no',span=c(2,2))
 
-Periodgramadlenergia2_sintendencia=spectrum(as.numeric(ElimiTendenerg),log='no')
-ubicacionlogenergia=which.max(Periodgramadlenergia2_sintendencia$spec)
-sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
+Periodgramadenergia2=spectrum(as.numeric(energia2),log='no')
+ubicacionlogenergia=which.max(Periodgramadenergia2$spec)
+sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadenergia2$freq[ubicacionlogenergia])
 
-sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
+sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadenergia2$freq[ubicacionlogenergia])
 
 # Preguntas profe ####
 # El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 

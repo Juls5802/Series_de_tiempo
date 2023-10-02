@@ -142,18 +142,22 @@ plot(ElimiTendenerg,main="Serie energia sin tendencia",
 Se puede notar que está ficti.
 
 ```{r}
-# Descomposición filtro de promedio moviles####
+# Descomposición filtro de promedios móviles
 energia_decompo=decompose(energia2)
 plot(energia_decompo)
 ```
+
+#### Tendencia con diferenciación
+
 ```{r}
 tsibble_energia<-as_tsibble(energia2)
 par(mar = c(2,2,2,2))
-fit_e = lm(energia2~time(energia2), na.action=NULL) # Regresión sobre el tiempo
 par(mfrow=c(2,1))
 plot(resid(fit_e), type="l", main="Sin tendencia") #Sin tendencia quitandola con regresión
 plot(diff(energia2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
 ```
+
+#### Comparación de los ACF
 
 ```{r}
 # Gráficos de los ACF
@@ -163,11 +167,15 @@ acf(energia2, 60, main="ACF energia")
 acf(resid(fit_e), 60, main="ACF Sin tendencia") 
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
+## Estimación de la estacionalidad
+
+#### Detección de estacionalidad
 
 ```{r}
 # Gráfica de retardos
 par(mar = c(3, 2, 3, 2))
 astsa::lag1.plot(energia2, 7,corr=F)
+astsa::lag1.plot(diff(energia2), 7,corr=F)
 ```
 
 ```{r}
@@ -176,56 +184,80 @@ tseriesChaos::mutual(energia2, partitions = 50, lag.max = 10, plot=TRUE)
 ```
 
 ```{r}
-energia_df<-energia
-energia_df$time = as.POSIXct(energia_df$fecha, "%Y-%m-%d")
+#energia_df<-energia
+#energia_df$time = as.POSIXct(energia_df$fecha, "%Y-%m-%d")
+#energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
+#energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+energiasss<-rbind(energia,c("2018-08-03",0))
+energia_df1<-energiasss
+energia_df1$time = as.POSIXct(energia_df1$fecha, "%Y-%m-%d")
+energia_df<-cbind(energia_df1[1:5054,1:2],energia_df1[2:5055,3])
+
 energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+
+head(energia_df)
+tail(energia_df)
 ```
 
 ```{r}
-energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("wday.lbl"),.geom="boxplot")
-energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("month.lbl"),.geom="boxplot")
+#energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("wday.lbl"),.geom="boxplot")
+#energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("month.lbl"),.geom="boxplot")
+
+# Gráfica de subseries semanal con datos originales
+gg_subseries(tsbl_energia,y=Energia,period=7)
 ```
-
-
 
 ```{r}
-#| label: fig-tendenerreglineal
-#| fig-cap: >
-#|    Serie original y serie con transformación logarítmica.
-
-##Periodograma 
-#con tendencia 
-spectrum(lenergia2,log='no')
-abline(v=1/365, lty=2,col="red")
-spectrum(lenergia2,log='no',span=5)
-spectrum(lenergia2,log='no',span=c(5,5))
-spectrum(lenergia2,log='no',span=c(2,2))
-#Sin tendencia 
-spectrum(ElimiTendenerg,log='no')
-abline(v=1/365, lty=2,col="red")
-spectrum(ElimiTendenerg,log='no',span=5)
-spectrum(ElimiTendenerg,log='no',span=c(5,5))
-spectrum(ElimiTendenerg,log='no',span=c(2,2))
-
-Periodgramadlenergia2_sintendencia=spectrum(as.numeric(ElimiTendenerg),log='no')
-ubicacionlogenergia=which.max(Periodgramadlenergia2_sintendencia$spec)
-sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
-
-sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
-
-# Preguntas profe ####
-# El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 
-# Si ya hicimos la transformación una vez, si no se incluye el 1 toca volver a transrformar la serie con box-cox
-# Si se ve que no tiene tendencia, igual tengo que estimarla y quitarla?
-# linea 107, es normal que en la gráfica se vea tanta correlación en todos los retardos de toda la semana? 
-# El ami muestra que no hay tanta relación entre las variables mientras que el grafico de 117 si muestra mucha
-# Mapa de calor no es útil cierto? xq la serie es diaria
-# en 145 como se puede hacer esa grilla, y se le puede poner daily en vez de hourly
-
-
-# Tareas
-# Xq no se ven las gráficas del shiny?
-# Volver a energia un xts
+# Gráfica de subseries anual con datos originales
+gg_subseries(tsbl_energia,y=Energia,period=12)
 ```
+
+```{r}
+# Periodograma Datos originales
+spectrum(as.numeric(energia2),log='no')
+
+PeriodogramaEnergia2=spectrum(as.numeric(energia2),log='no')
+ubicacionenergia=which.max(PeriodogramaEnergia2$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2$freq[ubicacionenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2$freq[ubicacionenergia])
+```
+
+```{r}
+# Periodograma sin tendencia lineal
+spectrum(as.numeric(ElimiTendenerg),log='no')
+
+PeriodogramaEnergia2_lineal=spectrum(as.numeric(ElimiTendenerg),log='no')
+ubicacionlogenergia=which.max(PeriodogramaEnergia2_lineal$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2_lineal$freq[ubicacionlogenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_lineal$freq[ubicacionlogenergia])
+```
+
+```{r}
+# Periodograma diferenciación
+spectrum(as.numeric(diff(energia2)),log='no')
+
+PeriodogramaEnergia2_dif=spectrum(as.numeric(diff(energia2)),log='no')
+ubicacionlogenergia=which.max(PeriodogramaEnergia2_dif$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2_dif$freq[ubicacionlogenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_dif$freq[ubicacionlogenergia])
+```
+
+#### Desestacionalización
+
+```{r}
+s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
+
+sin_est=diff(energia2,lag=round(s),differences=1)
+
+plot.ts(sin_est, main="Serie sin estacionalidad", ylab='')
+```
+
+
 Preguntar: Cuando lo hacemos con lenergia se veia que no habia tendencia, pero ahorita con los datos originales no, por la escala parece haber tendencia, y mirando el ACF se nota mucho la estacionalidad estimandola con diferenciacion
