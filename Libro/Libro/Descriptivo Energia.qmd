@@ -1,39 +1,85 @@
+```{r}
+#| warning: false
+#| echo: false
+library(TSstudio)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(astsa)
+library(feasts)
+library(fable)
+library(timetk)
+library(tsibble)
+library(zoo)
+library(xts)
+library(readxl)
+library(tidyverse)
+library(nonlinearTseries)
+library(tseriesChaos) 
+library(forecast)
+library(plotly)
+```
+
+
+```{r}
+#| warning: false
+#| echo: false
+#| results: false
+# Carga de la base de datos
+AEP_hourly<-read.csv("AEP_hourly.csv")
+AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
+AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
+
+energia <- AEP_hourly %>%
+  group_by(fecha) %>%
+  summarise(Energia = sum(AEP_MW))
+energia<-energia[-5055,]
+energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
+```
+
 # Análisis del consumo de energía de la empresa PJM
 
 Según lo observado en la serie de tiempo, visualmente se tiene:
 
--   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie no es la misma, a medida que pasa el tiempo esta va aumentanto, por lo tanto surge la necesidad de realizar una transformación Box-cox.
+-   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie es casi la misma, por lo tanto aparentemente no es necesario estabilizar la varianza. 
+-   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo, la serie oscila al rededor del mismo valor, por lo tanto, aparentemente, no es necesario estimar la tendencia.
 -   **Componente estacional:** Se observan algunos patrones que se repiten con cierta periodicidad, lo cual hace que sea necesario estimar posibles comportamientos estacionales.
 
 ## Estabilización de la varianza marginal
 
-Como se observa en la gráfica de la serie de tiempo es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, para esto se utilizó una transformación de Box-cox. @fig-boxcox1energia
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, sin embargo, se  hace una transformación de Box-cox para ver que tanto se estabiliza la varianza. En la @fig-boxcox1energia se observa que se sugiere una transformación, dado que 1 no está contenido en el intervalo.
 
 ```{r}
 #| label: fig-boxcox1energia
 #| fig-cap: >
-#|    Gráfico de la verosimilitud en función del hiperparámetro lambda
+#|    Gráfico de la verosimilitud en función del hiperparámetro lambda.
 MASS::boxcox(lm(energia2 ~ 1),seq(-5, 5, length = 50))
 abline(v = 1, col = "red", lty = 2)
 ```
 
-Se puede ver que el intervalo no captura al 1, lo que es un indício para pensar que sí es necesaria la estabilización de la varianza. En la siguiente salida se puede ver que el $\lambda$ sugerido es $-0.25$, como es un número cercano a $0$, se procede a hacer la transformación Box-Cox usando logarítmo natural.
+En la siguiente salida se puede ver que el $\lambda$ sugerido es $-0.25$, como es un número negativo, se procede a hacer la transformación Box-Cox usando logaritmo natural.
 
 ```{r}
 forecast::BoxCox.lambda(energia2, method ="loglik",lower = -1, upper = 3)
 ```
 
-En la gráfica a continuación se muestra nuevamente que no se contiene el 1, lo que significa que es necesaria otra transformación.
+En la @fig-boxcox1lenergia a continuación se muestra que la serie en escala logarítmica nuevamente no tiene la varianza estabilizada, dado que no se contiene al 1.  
 
 ```{r}
+#| label: fig-boxcox1lenergia
+#| fig-cap: >
+#|    Gráfico de la verosimilitud para la serie en escala logarítmica, en función del hiperparámetro lambda.
 lenergia2=log(energia2)
 MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length =  50))
 abline(v = 1, col = "red", lty = 2)
 ```
 
-Sin embargo, en la gráfica siguiente se puede ver que la varianza fue medianamente estabilizada por lo que no se estabilizará de nuevo.
+Además, gráficamente se ve, en la @fig-sinconboxcox , que no hay una diferencia significativa entre la serie transformada y no transformada. Por lo que el análisis descriptivo se continua usando los datos originales. 
 
 ```{r}
+#| label: fig-sinconboxcox
+#| fig-cap: >
+#|    Serie original y serie con transformación logarítmica.
 par(mar = c(1,1,1,1))
 par(mfrow=c(2,1),mar=c(3,3,3,3))
 plot(energia2,main="Serie energía sin Transformar",cex.main=1)
@@ -42,191 +88,176 @@ plot(lenergia2,main="Serie energía con Transformación BoxCox",cex.main=1)
 
 ## Estimación preliminar de la tendencia
 
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estimación de la tendencia para continuar con el análisis descriptivo, sin embargo, se hace una estimación preliminar usando varios métodos. 
+
+#### Tendencia lineal
+
 ```{r}
-
-```
-
-```{r}
-#Objeto tibble
-energia_1=energia %>% map_df(rev) # Queden ordenados
-
-#Fechas=as.yearmon(energia_1$fecha)
+# Creación del objeto tibble
+energia_1=energia %>% map_df(rev)
 Fechas=as.Date(energia_1$fecha)
 energia_xts=xts(x = energia_1$Energia,frequency = 365.25,order.by = Fechas)
-ts_info(energia_xts)
-par(mfrow= c(1,1))
-plot(energia_xts)
 
-###Creación objeto tssible a partir de un objeto tibble#####
+# Creación objeto tssible a partir del objeto tibble
 df_energia=data.frame(Energia=energia_1$Energia,fecha=energia_1$fecha)
 tbl_energia=tibble(df_energia)
 tbl_energia_format_fecha=tbl_energia
-#tbl_energia_format_fecha$fecha=yearmonth(tbl_energia_format_fecha$fecha)
 tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
+```
 
-# creo que no es necesario correr la siguiente linea pq deja la fecha como en meses
-#tbl_energia$fecha<-as.Date(zoo::as.yearmon(tbl_energia$fecha)) # aqui me lo deja por mes - esto no!!!!
+En la siguiente salida se presenta el ajuste de una regresión lineal para estimar la tendencia, como el $R^2$ es $0.058$, sugiere que no hay tendencia.
 
-tbl_energia%>%plot_time_series(.value=Energia,.date_var=fecha)#gráfica timetk
+```{r}
+# Análisis de tendencia con regresion simple
+summary(fit_e<-lm(energia2~time(energia2),na.action=NULL))
+```
 
+En la @fig-serietiempoenergiareglineal se presenta la serie de tiempo de la energía con la estimación lineal de la tendencia.
 
-### Analisis de tendencia con regresion simple ####
-summary(fit_e<-lm(lenergia2~time(lenergia2),na.action=NULL)) # el r2da chiquitico, tal vez no haya tendencia 
-# preguntarle al profe si en este caso toca estimar la tendencia o que
-plot(lenergia2,ylab="Consumo de energia total.") 
+```{r}
+#| label: fig-serietiempoenergiareglineal
+#| fig-cap: >
+#|    Gráfico de la serie de tiempo de la energía con la estimación lineal de la tendencia.
+
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
 abline(fit_e,col="darkcyan",lwd=2)
-#Eliminamos la tendencia con la predicción la recta
-ElimiTendenerg<-lenergia2-predict(fit_e)
+```
+
+```{r}
+# Eliminación de la tendencia con la predicción la recta
+ElimiTendenerg<-energia2-predict(fit_e)
 plot(ElimiTendenerg,main="Serie energia sin tendencia",
      cex.main=1.3,
      xlab="Tiempo",
      ylab="Consumo de energia total",
      cex.lab=0.4)
-acf(ElimiTendenerg,lag.max=179) # muestra que hay estacionalidad
-# ¿¿¿¿¿preguntar:
-acf(energia2,lag.max=179) # esto me muestra lo mismo pero sí es necesario estabilizar la varianza 
-acf(lenergia2,lag.max=179) # esto me muestra lo mismo y ya tiene bien var pero no estima la tendencia
-###Loess para hacer el ajuste de la tendencia ####
+```
 
-### Descomposición filtro de promedio moviles####
-energia_decompo=decompose(lenergia2)
+#### Tendencia con promedios móviles
+
+Se puede notar que está ficti.
+
+```{r}
+# Descomposición filtro de promedios móviles
+energia_decompo=decompose(energia2)
 plot(energia_decompo)
-energia_decompo$trend
-### Descomposición STL (no está funcionando)####
-##Algunas librerias
-library(feasts)
-library(fable)
-### Gráfico ##
+```
 
-tsibble_energia<-as_tsibble(lenergia2)
-#tsibble_energia <- tsibble_energia %>%
-#  fill_gaps()
-str(tsibble_energia)
-#tsibble_energia %>%
-#  model(
-#    STL(value ~ trend() +
-#          season(window = "periodic"),
-#        robust = TRUE)) %>%
-#  components() %>%
-#  autoplot()
-### Aun no se que es esto pero quita tendencia xd ####
+#### Tendencia con diferenciación
+
+```{r}
+tsibble_energia<-as_tsibble(energia2)
 par(mar = c(2,2,2,2))
-fit_e = lm(lenergia2~time(lenergia2), na.action=NULL) # Regresión sobre el tiempo
 par(mfrow=c(2,1))
-plot(resid(fit_e), type="l", main="sin tendencia") #Sin tendencia quitandola con regresión
-plot(diff(lenergia2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
-## Gráfico de los acf
+plot(resid(fit_e), type="l", main="Sin tendencia") #Sin tendencia quitandola con regresión
+plot(diff(energia2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
+```
+
+#### Comparación de los ACF
+
+```{r}
+# Gráficos de los ACF
 par(mar = c(3,2,3,2))
-par(mfrow=c(3,1)) # plot ACFs
-acf(lenergia2, 60, main="ACF energia")
-acf(resid(fit_e), 60, main="ACF Sin tendencia") 
-acf(diff(lenergia2), 60, main="ACF Primera Diferencia")
-#Notese que no bajan tan rapido sino que lo hacen lentico 
-#y tiene un ciclo estacional
-## Gráfica de retardos #####
-ts_info(lenergia2)
-par(mar = c(3, 2, 3, 2))
-astsa::lag1.plot(lenergia2, 7,corr=F)
-
-ts_info(ElimiTendenerg)
-par(mar = c(3, 2, 3, 2))
-astsa::lag1.plot(ElimiTendenerg, 7,corr=F)
-
-#ts_lags(ElimiTendenerg,lags=1:7)
-## Preguntarle al profe cual es el valor que debe ir en la funcion astsa
-## Preguntar si estos graficos se hacen sin tendencia.
-##ACF y PACF #####
 par(mfrow=c(3,1))
-par(mar = c(2.7,2,2.7,2))
-acf(ElimiTendenerg, 48, main="Energia tendencia eliminada con lm")
-acf(resid(fit_e ), 48, main="Energia la otra forma de quitar tendencia")
-acf(diff(lenergia2),48,main="Energia diferenciación")
-## Indice AMI 
-library(nonlinearTseries)
-library(tseriesChaos) 
-tseriesChaos::mutual(lenergia2, partitions = 50, lag.max = 10, plot=TRUE) # AMI serie con tendencia
-tseriesChaos::mutual(ElimiTendenerg, partitions = 50, lag.max = 10, plot=TRUE) # AMI serie sin tendencia con modelo lineal
+acf(energia2, 60, main="ACF energia")
+acf(resid(fit_e), 60, main="ACF Sin tendencia") 
+acf(diff(energia2), 60, main="ACF Primera Diferencia")
+```
+## Estimación de la estacionalidad
 
-## Detección de cíclos y estacionalidades (no está funcionando) ####
-energia3<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
-TSstudio::ts_heatmap(energia3,title = "Mapa de Calor - energia con tendencia")
-#TSstudio::ts_heatmap(ElimiTendenerg,title = "Mapa de Calor - Impuestos Dian sin tendencia")#Lo dejo comentado porque aun me falta quitar la tendencia de este modo para energia3
-TSstudio::ts_heatmap(diff(energia3),title = "Mapa de Calor - energia sin tendencia")
-## Explorando multiples estacionalidades ######
-library(UKgrid)
-require(TSstudio)
-require(timetk)
-require(feasts)
-require(tsibble)
-require(plotly)
+#### Detección de estacionalidad
 
+```{r}
+# Gráfica de retardos
+par(mar = c(3, 2, 3, 2))
+astsa::lag1.plot(energia2, 7,corr=F)
+astsa::lag1.plot(diff(energia2), 7,corr=F)
+```
 
-#str(energia_df)
-#energia_df<- data.frame(year = floor(time(lenergia2)), day = cycle(lenergia2),lenergia2 = as.numeric(lenergia2))
-#energia_df$hour <- hour(energia$fecha) 
-#energia_xts <- extract_grid(type = "xts",
-#                           columns = "ND",
-#                           aggregate = "hourly",
-#                           na.rm = TRUE)
-#energia_df <- data.frame(time = zoo::index(energia_xts), energia=as.numeric(energia_xts ))
+```{r}
+# Indice AMI 
+tseriesChaos::mutual(energia2, partitions = 50, lag.max = 10, plot=TRUE) 
+```
 
-#energia_df$weekday <- wday(energia_df$time)
+```{r}
+#energia_df<-energia
+#energia_df$time = as.POSIXct(energia_df$fecha, "%Y-%m-%d")
+#energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 #energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
-#head(energia_df)
-
 energiasss<-rbind(energia,c("2018-08-03",0))
 energia_df1<-energiasss
 energia_df1$time = as.POSIXct(energia_df1$fecha, "%Y-%m-%d")
 energia_df<-cbind(energia_df1[1:5054,1:2],energia_df1[2:5055,3])
 
-library(lubridate)
-#UKgrid_df$hour <- hour(UKgrid_df$time)
 energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+
 head(energia_df)
 tail(energia_df)
-
-energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("wday.lbl"),.geom="boxplot")
-
-energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("month.lbl"),.geom="boxplot")
-
-# pendiente energia_df%>%gg_subseries(ND,period=7)
-
-
-
-
-## Usando regresión para descubrir un ciclo (periodograma) ####
-##Periodograma 
-#con tendencia 
-spectrum(lenergia2,log='no')
-abline(v=1/365, lty=2,col="red")
-spectrum(lenergia2,log='no',span=5)
-spectrum(lenergia2,log='no',span=c(5,5))
-spectrum(lenergia2,log='no',span=c(2,2))
-#Sin tendencia 
-spectrum(ElimiTendenerg,log='no')
-abline(v=1/365, lty=2,col="red")
-spectrum(ElimiTendenerg,log='no',span=5)
-spectrum(ElimiTendenerg,log='no',span=c(5,5))
-spectrum(ElimiTendenerg,log='no',span=c(2,2))
-
-Periodgramadlenergia2_sintendencia=spectrum(as.numeric(ElimiTendenerg),log='no')
-ubicacionlogenergia=which.max(Periodgramadlenergia2_sintendencia$spec)
-sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
-
-sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadlenergia2_sintendencia$freq[ubicacionlogenergia])
-
-# Preguntas profe ####
-# El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 
-# Si ya hicimos la transformación una vez, si no se incluye el 1 toca volver a transrformar la serie con box-cox
-# Si se ve que no tiene tendencia, igual tengo que estimarla y quitarla?
-# linea 107, es normal que en la gráfica se vea tanta correlación en todos los retardos de toda la semana? 
-# El ami muestra que no hay tanta relación entre las variables mientras que el grafico de 117 si muestra mucha
-# Mapa de calor no es útil cierto? xq la serie es diaria
-# en 145 como se puede hacer esa grilla, y se le puede poner daily en vez de hourly
-
-
-# Tareas
-# Xq no se ven las gráficas del shiny?
-# Volver a energia un xts
 ```
+
+```{r}
+#energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("wday.lbl"),.geom="boxplot")
+#energia_df%>%plot_seasonal_diagnostics(.date_var = time,.value = Energia,.feature_set = c("month.lbl"),.geom="boxplot")
+
+# Gráfica de subseries semanal con datos originales
+gg_subseries(tsbl_energia,y=Energia,period=7)
+```
+
+```{r}
+# Gráfica de subseries anual con datos originales
+gg_subseries(tsbl_energia,y=Energia,period=12)
+```
+
+```{r}
+# Periodograma Datos originales
+spectrum(as.numeric(energia2),log='no')
+
+PeriodogramaEnergia2=spectrum(as.numeric(energia2),log='no')
+ubicacionenergia=which.max(PeriodogramaEnergia2$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2$freq[ubicacionenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2$freq[ubicacionenergia])
+```
+
+```{r}
+# Periodograma sin tendencia lineal
+spectrum(as.numeric(ElimiTendenerg),log='no')
+
+PeriodogramaEnergia2_lineal=spectrum(as.numeric(ElimiTendenerg),log='no')
+ubicacionlogenergia=which.max(PeriodogramaEnergia2_lineal$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2_lineal$freq[ubicacionlogenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_lineal$freq[ubicacionlogenergia])
+```
+
+```{r}
+# Periodograma diferenciación
+spectrum(as.numeric(diff(energia2)),log='no')
+
+PeriodogramaEnergia2_dif=spectrum(as.numeric(diff(energia2)),log='no')
+ubicacionlogenergia=which.max(PeriodogramaEnergia2_dif$spec)
+
+sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2_dif$freq[ubicacionlogenergia])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_dif$freq[ubicacionlogenergia])
+```
+
+#### Desestacionalización
+
+```{r}
+s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
+
+sin_est=diff(energia2,lag=round(s),differences=1)
+
+plot.ts(sin_est, main="Serie sin estacionalidad", ylab='')
+```
+
+
+Preguntar: Cuando lo hacemos con lenergia se veia que no habia tendencia, pero ahorita con los datos originales no, por la escala parece haber tendencia, y mirando el ACF se nota mucho la estacionalidad estimandola con diferenciacion
