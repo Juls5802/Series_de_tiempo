@@ -20,7 +20,6 @@ library(forecast)
 library(plotly)
 ```
 
-
 ```{r}
 #| warning: false
 #| echo: false
@@ -41,13 +40,13 @@ energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
 
 Según lo observado en la serie de tiempo, visualmente se tiene:
 
--   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie es casi la misma, por lo tanto aparentemente no es necesario estabilizar la varianza. 
+-   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie es casi la misma, por lo tanto aparentemente no es necesario estabilizar la varianza.
 -   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo, la serie oscila al rededor del mismo valor, por lo tanto, aparentemente, no es necesario estimar la tendencia.
 -   **Componente estacional:** Se observan algunos patrones que se repiten con cierta periodicidad, lo cual hace que sea necesario estimar posibles comportamientos estacionales.
 
 ## Estabilización de la varianza marginal
 
-Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, sin embargo, se  hace una transformación de Box-cox para ver que tanto se estabiliza la varianza. En la @fig-boxcox1energia se observa que se sugiere una transformación, dado que 1 no está contenido en el intervalo.
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, sin embargo, se hace una transformación de Box-cox para ver que tanto se estabiliza la varianza. En la @fig-boxcox1energia se observa que se sugiere una transformación, dado que 1 no está contenido en el intervalo.
 
 ```{r}
 #| label: fig-boxcox1energia
@@ -63,7 +62,7 @@ En la siguiente salida se puede ver que el $\lambda$ sugerido es $-0.25$, como e
 forecast::BoxCox.lambda(energia2, method ="loglik",lower = -1, upper = 3)
 ```
 
-En la @fig-boxcox1lenergia a continuación se muestra que la serie en escala logarítmica nuevamente no tiene la varianza estabilizada, dado que no se contiene al 1.  
+En la @fig-boxcox1lenergia a continuación se muestra que la serie en escala logarítmica nuevamente no tiene la varianza estabilizada, dado que no se contiene al 1.
 
 ```{r}
 #| label: fig-boxcox1lenergia
@@ -74,7 +73,7 @@ MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length =  50))
 abline(v = 1, col = "red", lty = 2)
 ```
 
-Además, gráficamente se ve, en la @fig-sinconboxcox , que no hay una diferencia significativa entre la serie transformada y no transformada. Por lo que el análisis descriptivo se continua usando los datos originales. 
+Además, gráficamente se ve, en la @fig-sinconboxcox , que no hay una diferencia significativa entre la serie transformada y no transformada. Por lo que el análisis descriptivo se continua usando los datos originales.
 
 ```{r}
 #| label: fig-sinconboxcox
@@ -88,7 +87,7 @@ plot(lenergia2,main="Serie energía con Transformación BoxCox",cex.main=1)
 
 ## Estimación preliminar de la tendencia
 
-Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estimación de la tendencia para continuar con el análisis descriptivo, sin embargo, se hace una estimación preliminar usando varios métodos. 
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estimación de la tendencia para continuar con el análisis descriptivo, sin embargo, se hace una estimación preliminar usando varios métodos.
 
 #### Tendencia lineal
 
@@ -167,6 +166,7 @@ acf(energia2, 60, main="ACF energia")
 acf(resid(fit_e), 60, main="ACF Sin tendencia") 
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
+
 ## Estimación de la estacionalidad
 
 #### Detección de estacionalidad
@@ -258,6 +258,5 @@ sin_est=diff(energia2,lag=round(s),differences=1)
 
 plot.ts(sin_est, main="Serie sin estacionalidad", ylab='')
 ```
-
 
 Preguntar: Cuando lo hacemos con lenergia se veia que no habia tendencia, pero ahorita con los datos originales no, por la escala parece haber tendencia, y mirando el ACF se nota mucho la estacionalidad estimandola con diferenciacion
