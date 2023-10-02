@@ -4,7 +4,7 @@ project:
 
 book:
   title: "Análisis de series de tiempo"
-  author: "Julieta Ruiz Castiblanco, Andrés Gracía López, Sofía Bello Dueñas"
+  author: "Julieta Ruiz, Andrés García, Sofía Bello"
   chapters:
     - index.qmd
     - "Descriptivo Dian.qmd"
