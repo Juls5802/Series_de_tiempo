@@ -1,20 +1,7 @@
-# Introducción {.unnumbered}
-
-## Sobre el trabajo
-
-Este trabajo realiza un análisis de dos bases de datos: Recaudo de impuestos internos por la DIAN para los años 2000 a 2023 y consumo de energía por horas de la organización regional de transmisión PJM Interconnection para los años 2004 a 2018. El análisis se desarrolla de forma estadística, realizando la parte descriptiva con su correspondiente interpretación.
-
-## Análisis del recaudo de impuestos internos por la DIAN
-
-La DIAN es la entidad encargada de administrar y recaudar los impuestos internos y aduaneros en el país. El recaudo de impuestos internos que realiza la DIAN cada mes se refiere a la suma total de los impuestos nacionales recaudados dentro del territorio colombiano durante ese período mensual. Los impuestos internos son aquellos que se aplican a las actividades económicas y transacciones que ocurren dentro del país, los cuales pueden incluir: IVA, impuesto de renta y complementarios, impuesto de timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.
-
-Con el proyecto se busca estudiar esta serie de tiempo para ver como es el comportamiento de los impuestos internos de Colombia a lo largo de los años, por ejemplo, encontrar patrones y observar qué tanto han aumentado dichos impuestos.
-
-A continuación se presenta la manera en que se realiza la carga de los datos y un vistazo preliminar de la serie de tiempo en la @fig-serietiempodian .
-
 ```{r}
 #| warning: false
 #| echo: false
+#| results: false
 library(TSstudio)
 library(readxl)
 library(dplyr)
@@ -31,6 +18,20 @@ library(tidyverse)
 library(forecast)
 library(plotly)
 ```
+
+# Introducción {.unnumbered}
+
+## Sobre el trabajo
+
+Este trabajo realiza un análisis de dos bases de datos: Recaudo de impuestos internos por la DIAN para los años 2000 a 2023 y consumo de energía por horas de la organización regional de transmisión PJM Interconnection para los años 2004 a 2018. El análisis se desarrolla de forma estadística, realizando la parte descriptiva con su correspondiente interpretación.
+
+## Análisis del recaudo de impuestos internos por la DIAN
+
+La DIAN es la entidad encargada de administrar y recaudar los impuestos internos y aduaneros en el país. El recaudo de impuestos internos que realiza la DIAN cada mes se refiere a la suma total de los impuestos nacionales recaudados dentro del territorio colombiano durante ese período mensual. Los impuestos internos son aquellos que se aplican a las actividades económicas y transacciones que ocurren dentro del país, los cuales pueden incluir: IVA, impuesto de renta y complementarios, impuesto de timbre, impuesto de consumo, impuesto a la riqueza, impuesto predial, ICA, entre otros.
+
+Con el proyecto se busca estudiar esta serie de tiempo para ver como es el comportamiento de los impuestos internos de Colombia a lo largo de los años, por ejemplo, encontrar patrones y observar qué tanto han aumentado dichos impuestos.
+
+A continuación se presenta la manera en que se realiza la carga de los datos y un vistazo preliminar de la serie de tiempo en la @fig-serietiempodian .
 
 ```{r}
 #| label: fig-serietiempodian
@@ -58,7 +59,7 @@ plot(dian2, main="Serie de tiempo del recaudo mensual interno",
 
 La empresa PJM es una organización de transmisión regional que coordina el movimiento de electricidad mayorista en la totalidad, o parte, de 13 estados y el Distrito de Columbia.
 
-El análisis del consumo de energía es esencial para mejorar la eficiencia operativa, reducir costos, cumplir con regulaciones y promover la sostenibilidad, por lo cual, este proyecto analiza la serie de tiempo con el fin de encontrar variaciones en el consumo de energía de los 13 estados y el Distrito de Columbia a lo largo del tiempo, así como también descubrir posibles patrones. 
+El análisis del consumo de energía es esencial para mejorar la eficiencia operativa, reducir costos, cumplir con regulaciones y promover la sostenibilidad, por lo cual, este proyecto analiza la serie de tiempo con el fin de encontrar variaciones en el consumo de energía de los 13 estados y el Distrito de Columbia a lo largo del tiempo, así como también descubrir posibles patrones.
 
 A continuación se presenta la manera en que se realiza la carga de los datos y un vistazo preliminar de la serie de tiempo en la @fig-serietiempoenergia .
 
