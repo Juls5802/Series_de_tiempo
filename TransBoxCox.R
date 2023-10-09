@@ -19,8 +19,9 @@ dian<-dian[,3:4]
 dian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)
 
 # Define la interfaz de usuario
+
 ui <- fluidPage(
-  titlePanel("Transformación Box-Cox de la Serie DIAN"),
+  titlePanel(HTML("<h1 style='color: blue;'>Transformación Box-Cox de la Serie DIAN.</h1>")),
   sidebarLayout(
     sidebarPanel(
       sliderInput("lambda", "Valor de Lambda:",
