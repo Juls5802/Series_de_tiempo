@@ -215,6 +215,40 @@ sprintf("El valor de la frecuencia donde se máximiza el periodograma para la se
 
 sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadenergia2$freq[ubicacionlogenergia])
 
+
+## Estacionalidad ####
+frec_ang=(2*pi/183) #w=2*pi/s
+energia_copia=energia
+str(energia_copia)
+
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5054)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5054)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
+
+X<-cbind(energia_copia$sin,energia_copia$cos,energia_copia$sin2,energia_copia$cos2,energia_copia$sin3,energia_copia$cos3)
+Y=energia_copia$Energia
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3,data=energia_copia)
+summary(linmodel_ciclo)
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+str(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+lines(results_ciclo_ts,col="red")
+
+plot(energia2-results_ciclo_ts)
 # Preguntas profe ####
 # El lambda de box-cox dio -0.25 se puede aproximar a 0 y ussar log o no? 
 # Si ya hicimos la transformación una vez, si no se incluye el 1 toca volver a transrformar la serie con box-cox

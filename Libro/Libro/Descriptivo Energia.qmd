@@ -305,7 +305,7 @@ sprintf("El valor de la frecuencia donde se maximiza el periodograma para la ser
 sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_dif$freq[ubicacionlogenergia])
 ```
 
-#### Desestacionalización
+### Estimación
 
 ```{r}
 s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
@@ -315,4 +315,45 @@ sin_est=diff(energia2,lag=round(s),differences=1)
 plot.ts(sin_est, main="Serie sin estacionalidad", ylab='')
 ```
 
-Preguntar: Cuando lo hacemos con lenergia se veia que no habia tendencia, pero ahorita con los datos originales no, por la escala parece haber tendencia, y mirando el ACF se nota mucho la estacionalidad estimandola con diferenciacion
+```{r}
+# Frecuencia angular w=2*pi/s
+frec_ang=(2*pi/183)
+
+energia_copia=energia
+
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5054)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5054)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
+
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3,data=energia_copia)
+summary(linmodel_ciclo)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+```
+
+```{r}
+# Series original
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+
+# Estimación de la estacionalidad
+lines(results_ciclo_ts,col="red")
+```
+
+```{r}
+# Datos sin estacionalidad
+plot(energia2-results_ciclo_ts)
+```
