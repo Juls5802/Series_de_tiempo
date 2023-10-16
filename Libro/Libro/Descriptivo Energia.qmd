@@ -43,12 +43,12 @@ energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
 Según lo observado en la serie de tiempo, visualmente se tiene:
 
 -   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie es casi la misma. Al parecer no es necesario estabilizar la varianza.
--   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo, la serie oscila al rededor del mismo valor, por lo tanto, aparentemente, no es necesario estimar la tendencia.
--   **Componente estacional:** Se observan algunos patrones que se repiten con cierta periodicidad, lo cual hace que sea necesario estimar posibles comportamientos estacionales.
+-   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo la serie oscila al rededor del mismo valor, por lo tanto, no es necesario estimar la tendencia.
+-   **Componente estacional:** Se observan algunos patrones que se repiten con cierta periodicidad, lo cual hace que sea necesario observar la posible presencia de componente estacional y posteriormente estimarla.
 
 ## Estabilización de la varianza marginal
 
-Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, sin embargo, para comprobar esto, se hace una transformación de Box-cox para ver que tanto se estabiliza la varianza. En la @fig-boxcox1energia se observa que se sugiere una transformación, dado que 1 no está contenido en el intervalo.
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, sin embargo, para comprobar esto, se hace una transformación de Box-cox para ver que tanto se estabiliza la varianza. En la @fig-boxcox1energia se observa que se sugiere una transformación dado que 1 no está contenido en el intervalo.
 
 ```{r}
 #| label: fig-boxcox1energia
@@ -75,7 +75,7 @@ MASS::boxcox(lm(lenergia2 ~ 1),seq(-5, 5, length =  50))
 abline(v = 1, col = "red", lty = 2)
 ```
 
-Además, se puede notar que, en la @fig-sinconboxcoxenerg , que no hay una diferencia significativa entre la serie transformada y no transformada. Por lo que el análisis descriptivo se continua usando los datos originales.
+Además, se puede notar en la @fig-sinconboxcoxenerg , que no hay una diferencia significativa entre la serie transformada y no transformada. Por lo que el análisis descriptivo se continúa usando los datos originales.
 
 ```{r}
 #| label: fig-sinconboxcoxenerg
@@ -89,7 +89,7 @@ plot(lenergia2,main="Serie energía con Transformación BoxCox",cex.main=1)
 
 ## Estimación de la tendencia
 
-Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estimación de la tendencia para continuar con el análisis descriptivo, sin embargo, se hace una estimación preliminar usando varios métodos.
+Como se observa en la gráfica de la serie de tiempo no es necesario realizar una estimación de la tendencia para continuar con el análisis descriptivo, sin embargo, se hace una estimación preliminar usando varios métodos, con el fin de comprobar que la serie sin tendencia no varía mucho.
 
 ### Tendencia lineal
 
@@ -192,13 +192,13 @@ acf(resid(fit_e), 60, main="ACF Sin tendencia")
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
 
-Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales AQUI TOCA EXPLICAR XQ, LO USAMOS SIN TENDENCIA XQ NO SE VE TENDENCIA Y XQ EL PROFE ACONSEJÓ PERO TOCA EXPLICAR MEJOR.
+Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales,  ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
 
 ## Estimación de la estacionalidad
 
 ### Detección de estacionalidad
 
-En la @fig-serietiempoenergiaretardos se puede observar el gráfico de retardos para la serie original, es evidente que hay una asociación lineal para el primer retardo, lo que quiere decir que las observaciones dependen de la observación inmediatamente anterior. REVISAR!!!
+En la @fig-serietiempoenergiaretardos se puede observar el gráfico de retardos para la serie original, es evidente que hay una asociación lineal más fuerte para el primer retardo, aunque para los demás retardos también se encuentra asociación lineal.
 
 ```{r}
 #| label: fig-serietiempoenergiaretardos
@@ -210,7 +210,7 @@ par(mar = c(3, 2, 3, 2))
 astsa::lag1.plot(energia2, 7,corr=F)
 ```
 
-En la @fig-serietiempoenergiaretardosdiff se puede ver el gráfico de retardos para la serie sin tendencia estimada con diferenciación, aquí no es visible ninguna asociación fuerte entre los rezagos. REVISAR!!!
+En la @fig-serietiempoenergiaretardosdiff se puede ver el gráfico de retardos para la serie sin tendencia estimada con diferenciación, aquí no es visible ninguna asociación lineal fuerte entre los rezagos.
 
 ```{r}
 #| label: fig-serietiempoenergiaretardosdiff
@@ -221,7 +221,7 @@ En la @fig-serietiempoenergiaretardosdiff se puede ver el gráfico de retardos p
 astsa::lag1.plot(diff(energia2), 7,corr=F)
 ```
 
-Adicionalmente se calcula el índice AMI, el cual se puede visualizar en la @fig-serietiempoenergiaami. 
+Adicionalmente se calcula el índice AMI, el cual se puede visualizar en la @fig-serietiempoenergiaami.
 
 ```{r}
 #| label: fig-serietiempoenergiaami
@@ -232,7 +232,7 @@ Adicionalmente se calcula el índice AMI, el cual se puede visualizar en la @fig
 tseriesChaos::mutual(energia2, partitions = 50, lag.max = 10, plot=TRUE) 
 ```
 
-Es posible ver que el primer rezago cuantifica bien la incertidumbre. REVISAR!!!
+Es posible ver que el primer rezago reduce el estado de incertidumbre para la observación en el tiempo $t$.
 
 ```{r}
 #| warning: false
@@ -256,7 +256,7 @@ En la @fig-serietiempoenergiasubseriediar se presenta el gráfico de subseries d
 gg_subseries(tsbl_energia,y=Energia,period=7)
 ```
 
-En la @fig-serietiempoenergiasubseriean se presenta el gráfico de subseries anuales para la serie original, se puede ver que no hay ciclos estacionales anuales, ya que todos tienen la misma media.
+En la @fig-serietiempoenergiasubseriean se presenta el gráfico de subseries mensuales para la serie original, se puede ver que no hay ciclos estacionales mensuales, ya que todos tienen la misma media.
 
 ```{r}
 #| label: fig-serietiempoenergiasubseriean
