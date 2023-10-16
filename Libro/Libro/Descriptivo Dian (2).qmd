@@ -1,0 +1,358 @@
+# Análisis descriptivo del recaudo de impuestos internos por la DIAN
+
+```{r, echo=FALSE}
+#| warning: false
+#| echo: false
+library(TSstudio)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(astsa)
+library(feasts)
+library(fable)
+library(timetk)
+library(tsibble)
+library(zoo)
+library(xts)
+library(readxl)
+library(tidyverse)
+library(forecast)
+library(plotly)
+```
+
+``` {r}
+# Base de datos de la DIAN 
+dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
+años<-2000:2023
+dian<-dplyr::filter(dian,Año %in% años)
+colnames(dian)<-c("Año","Mes","Impuestos")
+dian$fecha<-as.Date(paste(dian$Año, dian$Mes, "1", sep = "-"), format = "%Y-%B-%d")
+dian<-dian[,3:4]
+
+# Serie de tiempo de la DIAN 
+dian2<-ts(dian$Impuestos,start=c(2000,01),frequency=12)
+```
+
+El gráfico de nuestra serie de tiempo viene dado por:
+
+```{r}
+plot(dian2, main="Serie de tiempo del recaudo mensual interno",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Recaudo interno",
+     cex.lab=0.4)
+```
+
+Según lo observado en la serie de tiempo, preliminarmente se tiene que la serie presenta:
+
+-   **Heteroscedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie no es la misma, a medida que pasa el tiempo esta va aumentando, por lo tanto, surge la necesidad de realizar una transformación Box-cox.
+-   **Tendencia:** A simple vista se observa que a medida que pasa el tiempo, la serie oscila al rededor de valores cada vez más grandes, en consecuencia, es necesario estimar la tendencia y posteriormente eliminarla para poder continuar con el análisis de la serie.
+-   **Componente estacional:** Se observan algunos patrones que se repiten con cierta periodicidad (posiblemente cada año), lo cual hace que sea necesario estimar posibles comportamientos estacionales.
+
+## Estabilización de la varianza marginal
+
+Teniendo en cuenta lo observado utilizando el gráfico de la serie de tiempo, se puede evidenciar una heteroscedasticidad marginal la cual debemos corregir, para esto utilizaremos la transformación de Box-cox, la cual está dada por la siguiente fórmula.
+\begin{equation}
+	f_{\lambda}(u_{t})= \begin{cases}
+		\lambda^{-1}(u^{\lambda}_{t}-1), &  \text{si  $u_{t} \geq 0$, para $\lambda>0$,}\\
+		\ln(u_{t}), &\text{ si $u_{t}>0$, para $\lambda=0$}.
+	\end{cases}
+\end{equation}
+
+Donde el $λ$ apropiado debe ser estimado. Nótese que esta transformación es posible, puesto que no se tienen valores negativos, de este modo se tiene según la @fig-1 que:
+
+```{r}
+#| label: fig-1
+#| fig-cap: >
+#|    Gráfico del valor lambda que maximiza la verosmilitud.
+MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
+forecast::BoxCox.lambda(dian2, method ="loglik",
+                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1).
+```
+
+Con el anterior gráfico y salida podemos observar que el valor que maximiza la log-verosimilitud es 0.1, pero este valor es bastante cercano a 0, por lo tanto, lo aproximaremos a 0 para así poder utilizar la transformación logaritmo, nótese que el intervalo de confianza no captura al 1 en consecuencia puede ser conveniente realizar la transformación. En los gráficos de @fig-2 y @fig-2-1 analizaremos si dicha transformación logra estabilizar la varianza marginal de nuestros datos.
+
+```{r}
+#| label: fig-2
+#| fig-cap: >
+#|    Grafico de la serie con varianza estable utilizando lambda=0.1.
+plot(forecast::BoxCox(dian2,lambda=0.1))
+```
+```{r}
+#| label: fig-2-1
+#| fig-cap: >
+#|    Grafico de la serie con varianza estable utilizando el logaritmo.
+par(mar = c(1,1,1,1))
+ldian2=log(dian2)
+MASS::boxcox(lm(ldian2 ~ 1),seq(-5, 5, length = 50)) #Si captura al 1
+
+```
+
+Nótese que el intervalo de confianza de la transformación Box-cox logra capturar el valor de 1, lo cual nos indica que no es necesario transformar los datos nuevamente o buscar otro valor para $\lambda$, además la transformación ayudo de buena manera a estabilizar la varianza marginal de nuestra serie de tiempo.
+
+En el gráfico @fig-3 y @fig-3-1 mostramos la serie de recaudo de la DIAN con y sin la transformación logaritmo y es posible observar que la escala disminuyey que a su vez se observan algunos cambios considerables en la forma de la serie, lo cual es un buen indicativo de la relevancia de realizar la transformación.
+
+```{r}
+#| label: fig-3
+#| fig-cap: >
+#|    Serie DIAN sin transformar los datos utilizando el logaritmo.
+#par(mfrow=c(2,1))
+plot(dian2,main="Serie Dian sin Transformar")
+```
+
+```{r}
+#| label: fig-3-1
+#| fig-cap: >
+#|    Serie DIAN con transformación de los datos utilizando el logaritmo.
+plot(ldian2,main="Series Dian con Transformación BoxCox")
+```
+
+Teniendo lo anterior en cuenta, presentaremos un gráfico (@fig-4) de la serie sin tendencia un poco más interactivo e informativo, con el fin de lograr conocer los distintos valores en cada una de las fechas.
+
+```{r}
+#| label: fig-4
+#| fig-cap: >
+#|    Gráfico de la serie DIAN con los datos transformados.
+class(ldian2)
+dian3<-window(ldian2, start = c(2000,1))
+ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
+        Ytitle="Recaudo interno",
+        Xtitle="Tiempo",
+        Xgrid=TRUE,
+        Ygrid=TRUE)
+```
+
+## Tendencia Estimación y eliminación
+
+Luego de estabilizar la varianza marginal de nuestra serie, procederemos a estimar la tendencia y a eliminarla. Para estimar dicha tendencia iniciaremos utilizando una estimación lineal determinística de la tendencia y posteriormente restaremos la tendencia estimada a los datos de nuestra serie. EL ajuste de la recta se presenta en la @fig-5:
+
+```{r}
+#| label: fig-5
+#| fig-cap: >
+#|    Estimación de la tendencia de manera deterministica.
+summary(fit<-lm(ldian2~time(ldian2),na.action=NULL))
+plot(ldian2,ylab="Recaudo interno") 
+abline(fit,col="darkcyan",lwd=2)
+```
+
+Preliminarmente, es posible ver que la recta se ajusta de un buen modo a nuestra serie de tiempo, puesto que la tendencia de nuestra serie es monotona creciente, ahora procederemos a observar la serie de tiempo al eliminar la tendencia utilizando este método, esto se observa en la gráfica @fig-6:
+
+```{r}
+#| label: fig-6
+#| fig-cap: >
+#|    Serie DIANsin tendencia.
+ElimiTenddian<-ldian2-predict(fit)
+plot(ElimiTenddian,main="Serie Dian sin tendencia y con varianza estable",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Recaudo interno",
+     cex.lab=0.4)
+```
+
+Es posible observar que nuestra serie de tiempo cambio considerablemente, puesto que la escala de los valores se disminuyó bastante y además los datos oscilan al rededor del 0, pero aun es posible observar una posible tendencia en nuestros datos, por lo tanto procedemos a analizar otras formas de eliminar la tendencia.
+
+```{r}
+#| label: fig-7
+#| fig-cap: >
+#|    Gráfico acf series DIAN sin tendencia.
+acf(ElimiTenddian,lag.max=179,main="Acf Serie Dian sin tendencia")
+```
+
+Nótese que el gráfico de autocorrelación (@fig-7), nos indica preliminarmente la presencia de posibles componentes estacionales, pero esto lo analizaremos en detalle más adelante.
+
+Pero este no es el único modo de realizar la estimación de la tendencia, también podemos utilizar herramientas no paramétricas, pero como no hemos identificado la componente estacional, estas nos darán una estimación preliminar de la tendencia. La primera de ellas que vamos a utilizar es la descomposición vía filtros de promedios móviles, que se presenta a continuación (@fig-8):
+
+```{r}
+#| label: fig-8
+#| fig-cap: >
+#|    Descomposición via filtros de promedio moviles.
+dian_decompo=decompose(ldian2)
+plot(dian_decompo)
+#dian_decompo$trend
+```
+
+Nótese que parece estimar de modo correcto la componente estacional y en la componente residual se observan algunos patrones estacionales, al análizar la tendencia de este modo, podemos ver que aunque parece bastante lineal existen algunos lugares donde se ajusta mejor a ciertos comportamientos de la serie, por lo tanto podria ser viable utilizar esta tecnica para explorar la componente de tendencia.
+
+Ahora procederemos a utilizar la descomposición STL, para hacer un análisis similar(@fig-9).
+
+```{r}
+#| label: fig-9
+#| fig-cap: >
+#|    Descomposición via STL.
+library(feasts)
+library(fable)
+### Gráfico ##
+tsibble_dian<-as_tsibble(ldian2)
+str(tsibble_dian)
+tsibble_dian %>%
+  model(
+    STL(value ~ trend() +
+          season(window = "periodic"),
+        robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+```
+```{r}
+#| label: fig-10
+#| fig-cap: >
+#|    Desrie DIAN sin tendencia via STL.
+### Eliminando la tendencia por STL
+modelo_stl <- tsibble_dian %>%
+  model(
+    STL(value ~ trend() +
+          season(window = "periodic"),
+        robust = TRUE)
+  ) %>%
+  components()
+
+
+ElimiTenddian_STL<-ldian2-modelo_stl$trend
+plot(ElimiTenddian_STL,main="Serie Dian sin tendencia y con varianza estable (STL)",
+     cex.main=1.3,
+     xlab="Tiempo",
+     ylab="Recaudo interno",
+     cex.lab=0.4)
+```
+
+
+Es posible observar que el gráfico anterior (@fig-10) es bastante similar al obtenido utilizando filtro de promedios móviles (@fig-8) y podemos realizar una interpretación bastante similar, para continuar con nuestro análisis procederemos a continuar utilizando la eliminación de la tendencia via descomposición STL, pues es aquella que presenta un mejor desempeño,también es posible eliminar la tendencia utilizando diferenciación, pero se debe tener en cuenta que la diferenciación  puede eliminar la componente estacional que se tenga presente en la serie de tiempo, a continuación se muestra la manera en que se realizó la eliminación de la tendencia utilizando la diferenciación y su comparación con el método STL para eliminar tendencia utilizado en este trabajo (@fig-11).
+
+```{r}
+#| label: fig-11
+#| fig-cap: >
+#|    Serie DIAN sin tendencia via STL vs diferenciación.
+par(mar = c(2,2,2,2))
+fitdian = lm(ldian2~time(ldian2), na.action=NULL) 
+par(mfrow=c(2,1))
+plot(ElimiTenddian_STL, type="l", main="Sin tendencia via STL") 
+plot(diff(ldian2), type="l", main="Primera Diferencia") #Primera diferencia ordinaria
+```
+
+Podemos observar que a simple vista no hay diferencias muy importantes en cada una de las graficas, puesto que ambas se centran en 0 y parecen tener un comportamiento parecido.
+
+En el siguiente gráfico (@fig-12) se compara las funciones de autocorrelación obtenidas para la serie cuando eliminamos la tendencia utilizando descomposición STL y utilizando diferenciación, junto con la función de autocorrelación para la serie de tiempo con tendencia.
+
+```{r}
+#| label: fig-12
+#| fig-cap: >
+#|    Comparacion de los gráficos acf.
+par(mar = c(3,2,3,2))
+par(mfrow=c(3,1)) # plot ACFs
+acf(ldian2, 60, main="ACF Dian con tendencia.")
+acf(ElimiTenddian_STL, 60, main="ACF Sin tendencia STL.") 
+acf(diff(ldian2), 60, main="ACF Primera Diferencia.")
+```
+
+En el anterior gráfico (@fig-12), podemos observar que al eliminar la tendencia, el gráfico ACF baja mucho más rápido en las series de tiempo donde se eliminó la tendencia (por el método STL, como por el método de diferenciación) en comparación con la serie a la cual solo se le ajustó la varianza marginal, pero tanto en la serie diferenciada como en la serie eliminada por STL, se observa la presencia de una alta correlación en rezagos de tamaño 12, lo cual es un indicio de la presencia de una componente estacional.
+
+## Detección de estacionalidad
+
+Luego de estabilizar la varianza marginal y de tratar la tendencia, procedemos a observar si existe presencia de posibles ciclos o ciclos estacionales, para dicha tarea vamos a emplear múltiples métodos descriptivos que nos permiten obtener información sobre esta componente. Iniciaremos por observar el gráfico de retardos, el cual viene dado a continuación:
+
+```{r}
+#| label: fig-13
+#| fig-cap: >
+#|    Gráfico de retardos.
+ts_info(ElimiTenddian_STL)
+par(mar = c(3,2,3,2))
+astsa::lag1.plot(ElimiTenddian_STL, 12,corr=F)
+```
+```{r}
+#| label: fig-13-1
+#| fig-cap: >
+#|    Gráfico de retardos.
+ts_lags(ElimiTenddian_STL,lags=1:12)
+```
+
+El gráfico de retardos dado en @fig-13 y @fig-13-1, nos indican de manera descriptiva la posible relación existente entre un tiempo y algunos de sus retardos, para este caso en particular se toman 12 retardos (esto teniendo en cuenta la frecuencia mensual de la serie de tiempo), en este caso es posible observar que existe una clara relación lineal y directa con el rezago 12, los demás rezagos no parecen ser del todo significativos. Nótese que los dos gráficos anteriores nos dan una información bastante similar.
+
+Ahora observemos el gráfico de sub series (@fig-14), el cual toma los valores por cada mes de cada uno de los años dentro de la serie, como sabemos, se busca observar si en el histórico encontramos diferentes valores medios, mes tras mes, de este modo tenemos lo siguiente:
+
+```{r}
+#| label: fig-14
+#| fig-cap: >
+#|    Gráfico de subseries.
+require(feasts)
+dian2_tsbl_notend=as_tsibble(ElimiTenddian_STL)
+dian2_tsbl_notend%>%gg_subseries(value)
+```
+
+Al analizar el gráfico de sub series (@fig-14) es posible observar que la media en cada uno de los meses es distinta y no oscilan al rededor de un mismo valor, tomando su valor máximo en los meses de enero, disminuyendo luego en los meses de febrero y marzo, luego vuelve a aumentar y a mantenerse estable durante los meses de abril, mayo y junio. Esto es un claro indicio de la presencia de una componente cíclica estacional o cíclica. A continuación se presentan algunas otras gráficas descriptivas para observar la presencia de un ciclo estaciona.
+
+```{r}
+#| label: fig-15
+#| fig-cap: >
+#|    Promedio mensual.
+dian2sint_df <- data.frame(year = floor(time(ElimiTenddian_STL)), month = cycle(ElimiTenddian_STL),ElimiTenddian_STL = as.numeric(ElimiTenddian_STL))
+dian2sint_df$month <- factor(month.abb[dian2sint_df$month], levels = month.abb)
+dian2sint_summary <- dian2sint_df %>%group_by(month) %>%summarise(mean= mean(ElimiTenddian_STL),sd = sd(ElimiTenddian_STL))
+dian2sint_summary
+plot_ly (data = dian2sint_summary, x = ~ month, y = ~ mean, type = "bar", name   = "Mean") %>%
+  layout (title = "dian2sint - Monthly Average", yaxis =list(title = "Mean",   range = c(min(dian2sint_summary$mean), max(dian2sint_summary$mean))))
+```
+En el anterior gráfico (@fig-15) se observa el valor medio tomado por cada uno de los meses, es posible observar que tiene un comportamiento parecido al gráfico de sub series y de manera análoga nos muestra que existe una componente estacional.
+
+A continuación se muestran los mapas de calor para la serie DIAN con varianza marginal estable y tendencia eliminada por el método de descomposición STL y el metodo de diferenciacio STL.
+
+```{r}
+#| label: fig-16
+#| fig-cap: >
+#|    Graficos de calor serie DIAN sin tendencia por STLn.
+TSstudio::ts_heatmap(ElimiTenddian_STL,title = "Mapa de Calor - Impuestos Dian sin tendencia (STL)")
+```
+```{r}
+#| label: fig-16-1
+#| fig-cap: >
+#|    Graficos de calor serie DIAN sin tendencia por diferenciación.
+TSstudio::ts_heatmap(diff(ldian2),title = "Mapa de Calor - Impuestos Dian sin tendencia (dif)")
+```
+
+Ambos mapas (@fig-16 y @fig-16-1) nos dan una información similar, en los cuales es posible observar que en los meses de noviembre, enero, junio, mayo y abril se tienen una mayor cantidad de recaudo de impuestos, mientras que en diciembre, octubre, agosto, marzo y febrero tienen un menor valor de recaudo de impuestos año tras año, pero se observa un valor grande en mayo del 2007, nuevamente este gráfico nos ayuda a comprender la existencia de un ciclo estacional que posiblemente tenga un periodo de 12 meses.
+Es importante resaltar que el tener un valor medio alto en el mes de enero puede deberse al pago del impuesto predial en los primeros meses del año.
+
+Cuando hablamos de una componente estacional dentro de nuestra serie de tiempo, también necesitamos hablar de su periodo y de su frecuencia, para esto utilizaremos el periodograma.
+
+```{r}
+#| label: fig-17
+#| fig-cap: >
+#|    Peridograma serie DIAN.
+spectrum(as.numeric(ElimiTenddian_STL),log='no')
+abline(v=0.5, lty=2,col="red")
+```
+```{r}
+#| label: fig-17-1
+#| fig-cap: >
+#|    Peridograma serie DIAN.
+spectrum(as.numeric(ElimiTenddian_STL),log='no',span=5)
+```
+```{r}
+#| label: fig-17-2
+#| fig-cap: >
+#|    Peridograma serie DIAN.
+spectrum(as.numeric(ElimiTenddian_STL),log='no',span=c(5,5))
+```
+```{r}
+#| label: fig-17-3
+#| fig-cap: >
+#|    Peridograma serie DIAN.
+spectrum(as.numeric(ElimiTenddian_STL),log='no',span=c(2,2))
+```
+Al observar los gráficos anteriores (@fig-17,@fig-17-1,@fig-17-2,@fig-17-3), es posible observar que se tienen diferentes valores de suavizamiento para nuestro periodograma, pues aunque en este caso no es difícil observar los puntos donde se tiene un pico, el suavizamiento puede ayudarnos a observar de modo más simple los picos que son verdaderamente significativos.
+
+```{r}
+#| label: fig-18
+#| fig-cap: >
+#|    Periodograma serie DIAN.
+Periodgramadldian2_sintendencia=spectrum(as.numeric(ElimiTenddian_STL),log='no')
+ubicacionlogdian=which.max(Periodgramadldian2_sintendencia$spec)
+sprintf("El valor de la frecuencia donde se máximiza el periodograma para la serie es: %s",Periodgramadldian2_sintendencia$freq[ubicacionlogdian])
+
+sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadldian2_sintendencia$freq[ubicacionlogdian])
+```
+
+Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (es decir, en 6/12=0.5) y se obtuvo que el periodo es 2, esto quiere decir que el ciclo se repite cada dos meses, pero se tiene que 12 es un múltiplo de 2, por lo tanto, en realidad se tiene que el periodo de la componente estacional seria de tipo anual (12 meses) 
+
+## Desestacionalizar o eliminación de la componente estacional
+Para la estimación de la tendencia pasaremos al archivo en phyton, donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de rdes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.
+
+
