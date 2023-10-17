@@ -1,4 +1,3 @@
-install.packages("gridExtra")
 library(shiny)
 library(ggplot2)
 library(MASS)
@@ -7,7 +6,7 @@ library(dplyr)
 library(forecast)
 library(gridExtra)
 # Cargar tus datos
-setwd("C:/Users/andre/OneDrive/Escritorio/Andrés/2023-2/Series de tiempo/Proyecto")
+
 dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
 años<-2000:2023
 dian<-dplyr::filter(dian,Año %in% años)

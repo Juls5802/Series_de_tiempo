@@ -20,7 +20,7 @@ library(forecast)
 library(plotly)
 ```
 
-``` {r}
+```{r}
 # Base de datos de la DIAN 
 dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
 años<-2000:2023
@@ -51,12 +51,11 @@ Según lo observado en la serie de tiempo, preliminarmente se tiene que la serie
 
 ## Estabilización de la varianza marginal
 
-Teniendo en cuenta lo observado utilizando el gráfico de la serie de tiempo, se puede evidenciar una heteroscedasticidad marginal la cual debemos corregir, para esto utilizaremos la transformación de Box-cox, la cual está dada por la siguiente fórmula.
-\begin{equation}
-	f_{\lambda}(u_{t})= \begin{cases}
-		\lambda^{-1}(u^{\lambda}_{t}-1), &  \text{si  $u_{t} \geq 0$, para $\lambda>0$,}\\
-		\ln(u_{t}), &\text{ si $u_{t}>0$, para $\lambda=0$}.
-	\end{cases}
+Teniendo en cuenta lo observado utilizando el gráfico de la serie de tiempo, se puede evidenciar una heteroscedasticidad marginal la cual debemos corregir, para esto utilizaremos la transformación de Box-cox, la cual está dada por la siguiente fórmula. \begin{equation}
+    f_{\lambda}(u_{t})= \begin{cases}
+        \lambda^{-1}(u^{\lambda}_{t}-1), &  \text{si  $u_{t} \geq 0$, para $\lambda>0$,}\\
+        \ln(u_{t}), &\text{ si $u_{t}>0$, para $\lambda=0$}.
+    \end{cases}
 \end{equation}
 
 Donde el $λ$ apropiado debe ser estimado. Nótese que esta transformación es posible, puesto que no se tienen valores negativos, de este modo se tiene según la @fig-1 que:
@@ -78,6 +77,7 @@ Con el anterior gráfico y salida podemos observar que el valor que maximiza la 
 #|    Grafico de la serie con varianza estable utilizando lambda=0.1.
 plot(forecast::BoxCox(dian2,lambda=0.1))
 ```
+
 ```{r}
 #| label: fig-2-1
 #| fig-cap: >
@@ -113,13 +113,13 @@ Teniendo lo anterior en cuenta, presentaremos un gráfico (@fig-4) de la serie s
 #| label: fig-4
 #| fig-cap: >
 #|    Gráfico de la serie DIAN con los datos transformados.
-class(ldian2)
-dian3<-window(ldian2, start = c(2000,1))
-ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
-        Ytitle="Recaudo interno",
-        Xtitle="Tiempo",
-        Xgrid=TRUE,
-        Ygrid=TRUE)
+#class(ldian2)
+#dian3<-window(ldian2, start = c(2000,1))
+#ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
+#        Ytitle="Recaudo interno",
+#        Xtitle="Tiempo",
+#        Xgrid=TRUE,
+#        Ygrid=TRUE)
 ```
 
 ## Tendencia Estimación y eliminación
@@ -192,6 +192,7 @@ tsibble_dian %>%
   components() %>%
   autoplot()
 ```
+
 ```{r}
 #| label: fig-10
 #| fig-cap: >
@@ -214,8 +215,7 @@ plot(ElimiTenddian_STL,main="Serie Dian sin tendencia y con varianza estable (ST
      cex.lab=0.4)
 ```
 
-
-Es posible observar que el gráfico anterior (@fig-10) es bastante similar al obtenido utilizando filtro de promedios móviles (@fig-8) y podemos realizar una interpretación bastante similar, para continuar con nuestro análisis procederemos a continuar utilizando la eliminación de la tendencia via descomposición STL, pues es aquella que presenta un mejor desempeño,también es posible eliminar la tendencia utilizando diferenciación, pero se debe tener en cuenta que la diferenciación  puede eliminar la componente estacional que se tenga presente en la serie de tiempo, a continuación se muestra la manera en que se realizó la eliminación de la tendencia utilizando la diferenciación y su comparación con el método STL para eliminar tendencia utilizado en este trabajo (@fig-11).
+Es posible observar que el gráfico anterior (@fig-10) es bastante similar al obtenido utilizando filtro de promedios móviles (@fig-8) y podemos realizar una interpretación bastante similar, para continuar con nuestro análisis procederemos a continuar utilizando la eliminación de la tendencia via descomposición STL, pues es aquella que presenta un mejor desempeño,también es posible eliminar la tendencia utilizando diferenciación, pero se debe tener en cuenta que la diferenciación puede eliminar la componente estacional que se tenga presente en la serie de tiempo, a continuación se muestra la manera en que se realizó la eliminación de la tendencia utilizando la diferenciación y su comparación con el método STL para eliminar tendencia utilizado en este trabajo (@fig-11).
 
 ```{r}
 #| label: fig-11
@@ -257,11 +257,12 @@ ts_info(ElimiTenddian_STL)
 par(mar = c(3,2,3,2))
 astsa::lag1.plot(ElimiTenddian_STL, 12,corr=F)
 ```
+
 ```{r}
 #| label: fig-13-1
 #| fig-cap: >
 #|    Gráfico de retardos.
-ts_lags(ElimiTenddian_STL,lags=1:12)
+#ts_lags(ElimiTenddian_STL,lags=1:12)
 ```
 
 El gráfico de retardos dado en @fig-13 y @fig-13-1, nos indican de manera descriptiva la posible relación existente entre un tiempo y algunos de sus retardos, para este caso en particular se toman 12 retardos (esto teniendo en cuenta la frecuencia mensual de la serie de tiempo), en este caso es posible observar que existe una clara relación lineal y directa con el rezago 12, los demás rezagos no parecen ser del todo significativos. Nótese que los dos gráficos anteriores nos dan una información bastante similar.
@@ -290,6 +291,7 @@ dian2sint_summary
 plot_ly (data = dian2sint_summary, x = ~ month, y = ~ mean, type = "bar", name   = "Mean") %>%
   layout (title = "dian2sint - Monthly Average", yaxis =list(title = "Mean",   range = c(min(dian2sint_summary$mean), max(dian2sint_summary$mean))))
 ```
+
 En el anterior gráfico (@fig-15) se observa el valor medio tomado por cada uno de los meses, es posible observar que tiene un comportamiento parecido al gráfico de sub series y de manera análoga nos muestra que existe una componente estacional.
 
 A continuación se muestran los mapas de calor para la serie DIAN con varianza marginal estable y tendencia eliminada por el método de descomposición STL y el metodo de diferenciacio STL.
@@ -300,6 +302,7 @@ A continuación se muestran los mapas de calor para la serie DIAN con varianza m
 #|    Graficos de calor serie DIAN sin tendencia por STLn.
 TSstudio::ts_heatmap(ElimiTenddian_STL,title = "Mapa de Calor - Impuestos Dian sin tendencia (STL)")
 ```
+
 ```{r}
 #| label: fig-16-1
 #| fig-cap: >
@@ -307,8 +310,7 @@ TSstudio::ts_heatmap(ElimiTenddian_STL,title = "Mapa de Calor - Impuestos Dian s
 TSstudio::ts_heatmap(diff(ldian2),title = "Mapa de Calor - Impuestos Dian sin tendencia (dif)")
 ```
 
-Ambos mapas (@fig-16 y @fig-16-1) nos dan una información similar, en los cuales es posible observar que en los meses de noviembre, enero, junio, mayo y abril se tienen una mayor cantidad de recaudo de impuestos, mientras que en diciembre, octubre, agosto, marzo y febrero tienen un menor valor de recaudo de impuestos año tras año, pero se observa un valor grande en mayo del 2007, nuevamente este gráfico nos ayuda a comprender la existencia de un ciclo estacional que posiblemente tenga un periodo de 12 meses.
-Es importante resaltar que el tener un valor medio alto en el mes de enero puede deberse al pago del impuesto predial en los primeros meses del año.
+Ambos mapas (@fig-16 y @fig-16-1) nos dan una información similar, en los cuales es posible observar que en los meses de noviembre, enero, junio, mayo y abril se tienen una mayor cantidad de recaudo de impuestos, mientras que en diciembre, octubre, agosto, marzo y febrero tienen un menor valor de recaudo de impuestos año tras año, pero se observa un valor grande en mayo del 2007, nuevamente este gráfico nos ayuda a comprender la existencia de un ciclo estacional que posiblemente tenga un periodo de 12 meses. Es importante resaltar que el tener un valor medio alto en el mes de enero puede deberse al pago del impuesto predial en los primeros meses del año.
 
 Cuando hablamos de una componente estacional dentro de nuestra serie de tiempo, también necesitamos hablar de su periodo y de su frecuencia, para esto utilizaremos el periodograma.
 
@@ -319,24 +321,28 @@ Cuando hablamos de una componente estacional dentro de nuestra serie de tiempo, 
 spectrum(as.numeric(ElimiTenddian_STL),log='no')
 abline(v=0.5, lty=2,col="red")
 ```
+
 ```{r}
 #| label: fig-17-1
 #| fig-cap: >
 #|    Peridograma serie DIAN.
 spectrum(as.numeric(ElimiTenddian_STL),log='no',span=5)
 ```
+
 ```{r}
 #| label: fig-17-2
 #| fig-cap: >
 #|    Peridograma serie DIAN.
 spectrum(as.numeric(ElimiTenddian_STL),log='no',span=c(5,5))
 ```
+
 ```{r}
 #| label: fig-17-3
 #| fig-cap: >
 #|    Peridograma serie DIAN.
 spectrum(as.numeric(ElimiTenddian_STL),log='no',span=c(2,2))
 ```
+
 Al observar los gráficos anteriores (@fig-17,@fig-17-1,@fig-17-2,@fig-17-3), es posible observar que se tienen diferentes valores de suavizamiento para nuestro periodograma, pues aunque en este caso no es difícil observar los puntos donde se tiene un pico, el suavizamiento puede ayudarnos a observar de modo más simple los picos que son verdaderamente significativos.
 
 ```{r}
@@ -350,9 +356,8 @@ sprintf("El valor de la frecuencia donde se máximiza el periodograma para la se
 sprintf("El periodo correspondiente es aproximadamente: %s",1/Periodgramadldian2_sintendencia$freq[ubicacionlogdian])
 ```
 
-Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (es decir, en 6/12=0.5) y se obtuvo que el periodo es 2, esto quiere decir que el ciclo se repite cada dos meses, pero se tiene que 12 es un múltiplo de 2, por lo tanto, en realidad se tiene que el periodo de la componente estacional seria de tipo anual (12 meses) 
+Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (es decir, en 6/12=0.5) y se obtuvo que el periodo es 2, esto quiere decir que el ciclo se repite cada dos meses, pero se tiene que 12 es un múltiplo de 2, por lo tanto, en realidad se tiene que el periodo de la componente estacional seria de tipo anual (12 meses)
 
 ## Desestacionalizar o eliminación de la componente estacional
+
 Para la estimación de la tendencia pasaremos al archivo en phyton, donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de rdes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.
-
-

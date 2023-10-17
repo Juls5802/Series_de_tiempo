@@ -106,7 +106,7 @@ tbl_energia_format_fecha=tbl_energia
 tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
 ```
 
-En la siguiente salida se presenta el ajuste de una regresión lineal para estimar la tendencia. Como el $R^2$ es $0.058$, se sugiere que no hay tendencia.
+En la siguiente salida se presenta el ajuste de una regresión lineal para estimar la tendencia. El $R^2$ indíca qué tan bien se ajusta la recta a los datos, en este caso tiene un valor de $0.058$, por lo que sugiere que no hay tendencia lineal.
 
 ```{r}
 # Análisis de tendencia con regresion simple
@@ -146,7 +146,7 @@ plot(ElimiTendenerg,main="Serie energía sin tendencia",
 
 ### Tendencia con promedios móviles
 
-En la @fig-serietiempoenergiaprommovil , se muestra un ajuste de la tendencia con promedios móviles, como se puede ver, aparentemente hay una sobrestimación de la tendencia, ya que muestra comportamientos que no son tan visibles en la serie de tiempo original. 
+En la @fig-serietiempoenergiaprommovil , se muestra un ajuste de la tendencia con promedios móviles, como se puede ver, aparentemente hay una sobrestimación de la tendencia, ya que muestra comportamientos que no son tan visibles en la serie de tiempo original.
 
 ```{r}
 #| label: fig-serietiempoenergiaprommovil
@@ -171,7 +171,7 @@ tsibble_energia<-as_tsibble(energia2)
 par(mar = c(2,2,2,2))
 par(mfrow=c(2,1))
 
-plot(resid(fit_e), type="l", main="Sin tendencia") 
+plot(resid(fit_e), type="l", main="Sin tendencia lineal") 
 plot(diff(energia2), type="l", main="Primera Diferencia") 
 ```
 
@@ -192,7 +192,7 @@ acf(resid(fit_e), 60, main="ACF Sin tendencia")
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
 
-Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales,  ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
+Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales, ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
 
 ## Estimación de la estacionalidad
 
@@ -245,7 +245,7 @@ energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
 energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
 ```
 
-En la @fig-serietiempoenergiasubseriediar se presenta el gráfico de subseries diarias para la serie original, se puede ver que hay estacionalidad ya que el valor medio de todos los días no es el mismo.
+En la @fig-serietiempoenergiasubseriediar se presenta el gráfico de subseries diarias para la serie original, se puede ver que hay estacionalidad ya que el valor medio del día domingo por ejemplo, es menor al del resto de días.
 
 ```{r}
 #| label: fig-serietiempoenergiasubseriediar
@@ -269,7 +269,15 @@ gg_subseries(tsbl_energia,y=Energia,period=12)
 
 ### Periodograma
 
+#### Para los datos originales
+
+En la @fig-periodoriginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
+
 ```{r}
+#| label: fig-periodorginenerg
+#| fig-cap: >
+#|    Periodograma para la serie original.
+
 # Periodograma Datos originales
 spectrum(as.numeric(energia2),log='no')
 
@@ -281,7 +289,15 @@ sprintf("El valor de la frecuencia donde se maximiza el periodograma para la ser
 sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2$freq[ubicacionenergia])
 ```
 
+#### Para la serie sin tendencia lineal
+
+En la @fig-periodlinealenerg se presenta el periodograma para la serie sin tendencia lineal, el valor del periodo donde se maximiza el periodograma nuevamente es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
+
 ```{r}
+#| label: fig-periodlinealenerg
+#| fig-cap: >
+#|    Periodograma para la serie sin tendencia lineal.
+
 # Periodograma sin tendencia lineal
 spectrum(as.numeric(ElimiTendenerg),log='no')
 
@@ -293,7 +309,15 @@ sprintf("El valor de la frecuencia donde se maximiza el periodograma para la ser
 sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2_lineal$freq[ubicacionlogenergia])
 ```
 
+#### Para la serie sin tendencia usando diferenciación
+
+En la @fig-perioddiffenerg se presenta el periodograma para la serie sin tendencia estimada usando diferenciación, el valor del periodo donde se maximiza el periodograma es $3.5$, es decir, aproximadamente, el ciclo es de tres días.
+
 ```{r}
+#| label: fig-perioddiffenerg
+#| fig-cap: >
+#|    Periodograma para la serie sin tendencia usando diferenciación.
+
 # Periodograma diferenciación
 spectrum(as.numeric(diff(energia2)),log='no')
 
@@ -306,6 +330,14 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergi
 ```
 
 ### Estimación
+
+Para estimar la estacionalidad se usan las componentes de Fourier. Fourier mostró que toda función periódica puede representarse como una suma de funciones sinusoidales de distinta amplitud y frecuencia. La idea entonces es generalizar el análisis anterior para un ciclo a suma de funciones armónicas con distintas frecuencias. Dada la serie de longitud $(T)$, se denomina periodo básico o de Fourier, a las fracciones exactas del tamaño muestral, es decir $[s_j=\frac{T}{j},\ \ j=1,2,\cdots,T/2]$.
+
+El valor máximo de periodo básico se obtiene para $(j=1)$ y es $(T)$, es decir, se observa la onda una sola vez. El mínimo se obtiene para $(j=T/2)$ y es $2$ ya que no se puede observar periodos que duren menos de $2$ observaciones. Como antes, suele usarse las frecuencias en lugar de los periodos para el ajuste de los ciclos, así que las frecuencias básicas o de Fourier se define como $[f_j=\frac{j}{T}\ \ j=1,2,\cdots,T/2.]$
+
+Así, $(1/T\leq f_j\leq 1/2)$, y el valor máximo sería $(f_j=0.5)$ y se conoce como la frecuencia Nyquist. Con esto, una serie de tiempo $(Z_t)$ que es periódica se puede representar mediante $[Z_t=\mu+\sum_{j=1}^{T/2}A_j\sin(\omega_j t)+\sum_{j=1}^{T/2}B_j\cos(\omega_j t)+a_t]$, para seleccionar la frecuencia que debe ser incluída para explicar la serie se usa el periodograma. Se puede verificar que la contribución de una onda a la varianza es dada por $(\frac{\hat{R}^2}{2})$, así que ondas asociadas con amplitudes grandes serán importantes en la explicación de la variabilidad de la serie, mientras que ondas asociadas con amplitudes bajas serán poco importantes. Los estimadores de los coeficientes $(A_j)$ y $(B_j)$ están dados por $\hat{A}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\sin(\omega_j t)$, $\hat{B}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\cos(\omega_j t)$ y $hat{R}_j=\hat{A}_j^2+\hat{B}_j^2$, donde $(\omega_j=2\pi f_j)$ y $(f=\frac{j}{T})$, con lo cual $TS_z^2=\frac{T}{2}\sum_{j=1}^{T/2}\hat{R}_j^2$.
+
+Se puede considerar la amplitud calculada para la frecuencia $(f_j)$ como un promedio de las amplitudes existentes en las frecuencias situadas en el intervalo $(f_j\pm \frac{1}{2}T)$. Con esto, se puede obtener el periodograma suavizado construyendo rectángulos con centro $(f_j$), base igual a $(1/T)$ y alturas $(I(f_j)=T\hat{R}_j/2)$.
 
 ```{r}
 s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
@@ -341,9 +373,15 @@ results_ciclo<-as.data.frame(results_ciclo)
 results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
 ```
 
+En la @fig-energestacionalidad se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie, AGREGAR MAIS COZINHAS.
+
 ```{r}
+#| label: fig-energestacionalidad
+#| fig-cap: >
+#|    Serie original con estamación de la componente estacional y serie sin estacionalidad.
+
 # Series original
-plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+plot(energia2, main="Serie de tiempo del consumo de energía",
      cex.main=1.3,
      xlab="Tiempo ",
      ylab="Energía consumida",
@@ -351,9 +389,7 @@ plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estado
 
 # Estimación de la estacionalidad
 lines(results_ciclo_ts,col="red")
-```
 
-```{r}
-# Datos sin estacionalidad
+# Serie sin estacionalidad
 plot(energia2-results_ciclo_ts)
 ```

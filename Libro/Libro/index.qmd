@@ -1,3 +1,5 @@
+# Introducción {.unnumbered}
+
 ```{r}
 #| warning: false
 #| echo: false
@@ -18,8 +20,6 @@ library(tidyverse)
 library(forecast)
 library(plotly)
 ```
-
-# Introducción {.unnumbered}
 
 ## Sobre el trabajo
 

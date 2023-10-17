@@ -7,7 +7,7 @@ book:
   author: "Julieta Ruiz, Andrés García, Sofía Bello"
   chapters:
     - index.qmd
-    - "Descriptivo Dian.qmd"
+    - "Descriptivo Dian (2).qmd"
     - "Descriptivo Energia.qmd"
     - references.qmd
 

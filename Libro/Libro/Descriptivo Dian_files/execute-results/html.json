@@ -1,0 +1,16 @@
+{
+  "hash": "99d8323a793eaa373faf5f1a433fe2f6",
+  "result": {
+    "markdown": "# Análisis descriptivo del recaudo de impuestos internos por la DIAN\n\nSegún lo observado en la serie de tiempo, visualmente se tiene:\n\n-   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie no es la misma, a medida que pasa el tiempo esta va aumentanto, por lo tanto surge la necesidad de realizar una transformación Box-cox.\n-   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo, la serie oscila al rededor de valores cada vez más grandes, por lo tanto, es necesario estimar la tendencia y posteriormente eliminarla para poder continuar con el análisis de la serie.\n-   **Componente estacional:** e observan algunos patrones que se repiten con cierta periodicidad (posiblemente cada año), lo cual hace que sea necesario estimar posibles comportamientos estacionales.\n\n## Estabilización de la varianza marginal\n\nComo se observa en la gráfica de la serie de tiempo es necesario realizar una estabilización de la varianza para continuar con el análisis descriptivo, para esto se utilizó una transformación de Box-cox.\n\n\n::: {.cell}\n\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nMASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no captura al 1\n```\n\n::: {.cell-output-display}\n![](Descriptivo-Dian_files/figure-html/unnamed-chunk-2-1.png){width=672}\n:::\n\n```{.r .cell-code}\nforecast::BoxCox.lambda(dian2, method =\"loglik\",\n                        lower = -1, upper = 3)#Entrega el valor de lambda (0.1), cercano a cero o sea que vale la pena pensar en una transformación logaritmica.\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n[1] 0.1\n```\n:::\n\n```{.r .cell-code}\nplot(forecast::BoxCox(dian2,lambda=0.1))\n```\n\n::: {.cell-output-display}\n![](Descriptivo-Dian_files/figure-html/unnamed-chunk-2-2.png){width=672}\n:::\n:::\n",
+    "supporting": [
+      "Descriptivo-Dian_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
