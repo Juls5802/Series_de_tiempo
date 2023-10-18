@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.353">
+<meta name="generator" content="quarto-1.3.433">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -64,7 +64,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./references.html" rel="next">
 <link href="./Descriptivo Dian (2).html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -91,7 +90,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-matches-text": "resultados adicionales en este documento",
     "search-clear-button-title": "Borrar",
     "search-detached-cancel-button-title": "Cancelar",
-    "search-submit-button-title": "Enviar"
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
   }
 }</script>
 
@@ -112,7 +112,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./Descriptivo Energia.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Análisis del consumo de energía de la empresa PJM</span></a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
     </div>
@@ -150,12 +150,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="./Descriptivo Energia.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Análisis del consumo de energía de la empresa PJM</span></span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./references.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">References</span></a>
   </div>
 </li>
     </ul>
@@ -688,7 +682,7 @@ F-statistic: 452.5 on 6 and 5047 DF,  p-value: &lt; 2.2e-16</code></pre>
 <span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>results_ciclo3<span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(results_ciclo3)</span>
 <span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>results_ciclo_ts3<span class="ot">&lt;-</span><span class="fu">ts</span>(results_ciclo3,<span class="at">start=</span><span class="fu">c</span>(<span class="dv">2004</span>,<span class="dv">10</span>,<span class="dv">01</span>),<span class="at">frequency=</span><span class="fl">365.25</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>En la <span class="quarto-unresolved-ref">?fig-energestacionalidad</span> se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie, AGREGAR MAIS COZINHAS.</p>
+<p>En la <span class="quarto-unresolved-ref">?fig-energestacionalidad</span> se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie. Se toma una componente de Fourier, ya que no hay una diferencia visible al utilizar 2 y 3.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Series original</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2, <span class="at">main=</span><span class="st">"Serie de tiempo del consumo de energía"</span>,</span>
@@ -703,7 +697,7 @@ F-statistic: 452.5 on 6 and 5047 DF,  p-value: &lt; 2.2e-16</code></pre>
 <span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(results_ciclo_ts3,<span class="at">col=</span><span class="st">"orange"</span>)</span>
 <span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Serie sin estacionalidad</span></span>
-<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2<span class="sc">-</span>results_ciclo_ts3)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2<span class="sc">-</span>results_ciclo_ts1)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-energestacionalidad-1" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
@@ -967,9 +961,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./references.html" class="pagination-link">
-        <span class="nav-page-text">References</span> <i class="bi bi-arrow-right-short"></i>
-      </a>
   </div>
 </nav>
 </div> <!-- /content -->

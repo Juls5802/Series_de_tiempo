@@ -113,13 +113,14 @@ Teniendo lo anterior en cuenta, presentaremos un gráfico (@fig-4) de la serie s
 #| label: fig-4
 #| fig-cap: >
 #|    Gráfico de la serie DIAN con los datos transformados.
-#class(ldian2)
-#dian3<-window(ldian2, start = c(2000,1))
-#ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
-#        Ytitle="Recaudo interno",
-#        Xtitle="Tiempo",
-#        Xgrid=TRUE,
-#        Ygrid=TRUE)
+
+class(ldian2)
+dian3<-window(ldian2, start = c(2000,1))
+ts_plot(dian3,title="Serie de tiempo del recaudo mensual interno",
+        Ytitle="Recaudo interno",
+        Xtitle="Tiempo",
+        Xgrid=TRUE,
+        Ygrid=TRUE)
 ```
 
 ## Tendencia Estimación y eliminación
@@ -262,7 +263,8 @@ astsa::lag1.plot(ElimiTenddian_STL, 12,corr=F)
 #| label: fig-13-1
 #| fig-cap: >
 #|    Gráfico de retardos.
-#ts_lags(ElimiTenddian_STL,lags=1:12)
+
+ts_lags(ElimiTenddian_STL,lags=1:12)
 ```
 
 El gráfico de retardos dado en @fig-13 y @fig-13-1, nos indican de manera descriptiva la posible relación existente entre un tiempo y algunos de sus retardos, para este caso en particular se toman 12 retardos (esto teniendo en cuenta la frecuencia mensual de la serie de tiempo), en este caso es posible observar que existe una clara relación lineal y directa con el rezago 12, los demás rezagos no parecen ser del todo significativos. Nótese que los dos gráficos anteriores nos dan una información bastante similar.
@@ -360,4 +362,4 @@ Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (
 
 ## Desestacionalizar o eliminación de la componente estacional
 
-Para la estimación de la tendencia pasaremos al archivo en phyton, donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de rdes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.
+Para la estimación de la tendencia pasaremos al archivo en phyton, donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de redes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.

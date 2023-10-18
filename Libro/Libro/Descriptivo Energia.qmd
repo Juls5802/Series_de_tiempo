@@ -146,7 +146,7 @@ plot(ElimiTendenerg,main="Serie energía sin tendencia",
 
 ### Tendencia con promedios móviles
 
-En la @fig-serietiempoenergiaprommovil , se muestra un ajuste de la tendencia con promedios móviles, como se puede ver, aparentemente hay una sobrestimación de la tendencia, ya que muestra comportamientos que no son tan visibles en la serie de tiempo original. 
+En la @fig-serietiempoenergiaprommovil , se muestra un ajuste de la tendencia con promedios móviles, como se puede ver, aparentemente hay una sobrestimación de la tendencia, ya que muestra comportamientos que no son tan visibles en la serie de tiempo original.
 
 ```{r}
 #| label: fig-serietiempoenergiaprommovil
@@ -192,7 +192,7 @@ acf(resid(fit_e), 60, main="ACF Sin tendencia")
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
 
-Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales,  ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
+Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales, ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
 
 ## Estimación de la estacionalidad
 
@@ -271,7 +271,7 @@ gg_subseries(tsbl_energia,y=Energia,period=12)
 
 #### Para los datos originales
 
-En la @fig-periodorginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año. 
+En la @fig-periodorginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
 
 ```{r}
 #| label: fig-periodorginenerg
@@ -291,7 +291,7 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergi
 
 #### Para la serie sin tendencia lineal
 
-En la @fig-periodlinealenerg se presenta el periodograma para la serie sin tendencia lineal, el valor del periodo donde se maximiza el periodograma nuevamente es $182.86$, es decir, aproximadamente, el ciclo es de medio año. 
+En la @fig-periodlinealenerg se presenta el periodograma para la serie sin tendencia lineal, el valor del periodo donde se maximiza el periodograma nuevamente es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
 
 ```{r}
 #| label: fig-periodlinealenerg
@@ -311,7 +311,7 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergi
 
 #### Para la serie sin tendencia usando diferenciación
 
-En la @fig-perioddiffenerg se presenta el periodograma para la serie sin tendencia estimada usando diferenciación, el valor del periodo donde se maximiza el periodograma es $3.5$, es decir, aproximadamente, el ciclo es de tres días. 
+En la @fig-perioddiffenerg se presenta el periodograma para la serie sin tendencia estimada usando diferenciación, el valor del periodo donde se maximiza el periodograma es $3.5$, es decir, aproximadamente, el ciclo es de tres días.
 
 ```{r}
 #| label: fig-perioddiffenerg

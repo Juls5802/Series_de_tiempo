@@ -9,7 +9,6 @@ book:
     - index.qmd
     - "Descriptivo Dian (2).qmd"
     - "Descriptivo Energia.qmd"
-    - references.qmd
 
 bibliography: references.bib
 
