@@ -485,7 +485,7 @@ F-statistic: 313.4 on 1 and 5052 DF,  p-value: &lt; 2.2e-16</code></pre>
 <h3 data-number="2.3.2" class="anchored" data-anchor-id="periodograma"><span class="header-section-number">2.3.2</span> Periodograma</h3>
 <section id="para-los-datos-originales" class="level4" data-number="2.3.2.1">
 <h4 data-number="2.3.2.1" class="anchored" data-anchor-id="para-los-datos-originales"><span class="header-section-number">2.3.2.1</span> Para los datos originales</h4>
-<p>En la <span class="quarto-unresolved-ref">?fig-periodoriginenerg</span> se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es <span class="math inline">\(182.86\)</span>, es decir, aproximadamente, el ciclo es de medio año.</p>
+<p>En la <a href="#fig-periodorginenerg">Figura&nbsp;<span>2.14</span></a> se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es <span class="math inline">\(182.86\)</span>, es decir, aproximadamente, el ciclo es de medio año.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Periodograma Datos originales</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">spectrum</span>(<span class="fu">as.numeric</span>(energia2),<span class="at">log=</span><span class="st">'no'</span>)</span>
@@ -570,10 +570,7 @@ F-statistic: 313.4 on 1 and 5052 DF,  p-value: &lt; 2.2e-16</code></pre>
 </section>
 <section id="estimación" class="level3" data-number="2.3.3">
 <h3 data-number="2.3.3" class="anchored" data-anchor-id="estimación"><span class="header-section-number">2.3.3</span> Estimación</h3>
-<p>Para estimar la estacionalidad se usan las componentes de Fourier. Fourier mostró que toda función periódica puede representarse como una suma de funciones sinusoidales de distinta amplitud y frecuencia. La idea entonces es generalizar el análisis anterior para un ciclo a suma de funciones armónicas con distintas frecuencias. Dada la serie de longitud <span class="math inline">\((T)\)</span>, se denomina periodo básico o de Fourier, a las fracciones exactas del tamaño muestral, es decir <span class="math inline">\([s_j=\frac{T}{j},\ \ j=1,2,\cdots,T/2]\)</span>.</p>
-<p>El valor máximo de periodo básico se obtiene para <span class="math inline">\((j=1)\)</span> y es <span class="math inline">\((T)\)</span>, es decir, se observa la onda una sola vez. El mínimo se obtiene para <span class="math inline">\((j=T/2)\)</span> y es <span class="math inline">\(2\)</span> ya que no se puede observar periodos que duren menos de <span class="math inline">\(2\)</span> observaciones. Como antes, suele usarse las frecuencias en lugar de los periodos para el ajuste de los ciclos, así que las frecuencias básicas o de Fourier se define como <span class="math inline">\([f_j=\frac{j}{T}\ \ j=1,2,\cdots,T/2.]\)</span></p>
-<p>Así, <span class="math inline">\((1/T\leq f_j\leq 1/2)\)</span>, y el valor máximo sería <span class="math inline">\((f_j=0.5)\)</span> y se conoce como la frecuencia Nyquist. Con esto, una serie de tiempo <span class="math inline">\((Z_t)\)</span> que es periódica se puede representar mediante <span class="math inline">\([Z_t=\mu+\sum_{j=1}^{T/2}A_j\sin(\omega_j t)+\sum_{j=1}^{T/2}B_j\cos(\omega_j t)+a_t]\)</span>, para seleccionar la frecuencia que debe ser incluída para explicar la serie se usa el periodograma. Se puede verificar que la contribución de una onda a la varianza es dada por <span class="math inline">\((\frac{\hat{R}^2}{2})\)</span>, así que ondas asociadas con amplitudes grandes serán importantes en la explicación de la variabilidad de la serie, mientras que ondas asociadas con amplitudes bajas serán poco importantes. Los estimadores de los coeficientes <span class="math inline">\((A_j)\)</span> y <span class="math inline">\((B_j)\)</span> están dados por <span class="math inline">\(\hat{A}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\sin(\omega_j t)\)</span>, <span class="math inline">\(\hat{B}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\cos(\omega_j t)\)</span> y <span class="math inline">\(hat{R}_j=\hat{A}_j^2+\hat{B}_j^2\)</span>, donde <span class="math inline">\((\omega_j=2\pi f_j)\)</span> y <span class="math inline">\((f=\frac{j}{T})\)</span>, con lo cual <span class="math inline">\(TS_z^2=\frac{T}{2}\sum_{j=1}^{T/2}\hat{R}_j^2\)</span>.</p>
-<p>Se puede considerar la amplitud calculada para la frecuencia <span class="math inline">\((f_j)\)</span> como un promedio de las amplitudes existentes en las frecuencias situadas en el intervalo <span class="math inline">\((f_j\pm \frac{1}{2}T)\)</span>. Con esto, se puede obtener el periodograma suavizado construyendo rectángulos con centro <span class="math inline">\((f_j\)</span>), base igual a <span class="math inline">\((1/T)\)</span> y alturas <span class="math inline">\((I(f_j)=T\hat{R}_j/2)\)</span>.</p>
+<p>Ahora procederemos a estimar el ciclo estacional que se observa en esta serie de tiempo, es importante resaltar que con ayuda de los graficos exploratorios y el periodograma se observo que el periodo de la componente estacional es <span class="math inline">\(s=12\)</span>, por lo tanto utilizaremos en primer lugar componentes de fourier, esto teniendo en cuenta que se aprecia que la componente estacional sigue un comportamiento deterministico y posiblemente sinosoidal. Teniendo lo anterior en cuenta el modelo viene dado por: <span class="math display">\[\begin{align*} x_t&amp;= ∑_{i=1}^k a_icos(k𝜔t)+b_isen(k𝜔t) + w_t \\ \end{align*}\]</span> Donde <span class="math inline">\(k\)</span> corresponderá al orden de la expansión en series de Fourier y los coeficientes <span class="math inline">\(a_i\)</span> y <span class="math inline">\(b_i\)</span> con <span class="math inline">\(i=1,...,k\)</span> serán estimados a través del método de mínimos cuadrados. El cálculo de esta componente se muestra a continuación considerando un orden <span class="math inline">\(k=3\)</span>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>s<span class="ot">=</span><span class="dv">1</span><span class="sc">/</span>PeriodogramaEnergia2<span class="sc">$</span>freq[ubicacionenergia]</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -602,8 +599,57 @@ F-statistic: 313.4 on 1 and 5052 DF,  p-value: &lt; 2.2e-16</code></pre>
 <span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>energia_copia<span class="sc">$</span>sin3 <span class="ot">=</span> <span class="fu">sin</span>(<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5054</span>)<span class="sc">*</span>(<span class="dv">3</span><span class="sc">*</span>frec_ang))</span>
 <span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>energia_copia<span class="sc">$</span>cos3 <span class="ot">=</span> <span class="fu">cos</span>(<span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5054</span>)<span class="sc">*</span>(<span class="dv">3</span><span class="sc">*</span>frec_ang))</span>
 <span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>linmodel_ciclo<span class="ot">&lt;-</span><span class="fu">lm</span>(Energia<span class="sc">~</span><span class="dv">1</span><span class="sc">+</span>sin<span class="sc">+</span>cos<span class="sc">+</span>sin2<span class="sc">+</span>cos2<span class="sc">+</span>sin3<span class="sc">+</span>cos3,<span class="at">data=</span>energia_copia)</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(linmodel_ciclo)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>linmodel_ciclo1<span class="ot">&lt;-</span><span class="fu">lm</span>(Energia<span class="sc">~</span><span class="dv">1</span><span class="sc">+</span>sin<span class="sc">+</span>cos,<span class="at">data=</span>energia_copia)</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>linmodel_ciclo2<span class="ot">&lt;-</span><span class="fu">lm</span>(Energia<span class="sc">~</span><span class="dv">1</span><span class="sc">+</span>sin<span class="sc">+</span>cos<span class="sc">+</span>sin2<span class="sc">+</span>cos2,<span class="at">data=</span>energia_copia)</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>linmodel_ciclo3<span class="ot">&lt;-</span><span class="fu">lm</span>(Energia<span class="sc">~</span><span class="dv">1</span><span class="sc">+</span>sin<span class="sc">+</span>cos<span class="sc">+</span>sin2<span class="sc">+</span>cos2<span class="sc">+</span>sin3<span class="sc">+</span>cos3,<span class="at">data=</span>energia_copia)</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(linmodel_ciclo1)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Energia ~ 1 + sin + cos, data = energia_copia)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-123583  -25009    -763   24258  145198 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 371981.5      540.3  688.43   &lt;2e-16 ***
+sin         -21616.9      765.2  -28.25   &lt;2e-16 ***
+cos         -32486.6      763.0  -42.58   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 38410 on 5051 degrees of freedom
+Multiple R-squared:  0.3413,    Adjusted R-squared:  0.3411 
+F-statistic:  1309 on 2 and 5051 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(linmodel_ciclo2)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Energia ~ 1 + sin + cos + sin2 + cos2, data = energia_copia)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-121273  -25065    -578   23895  142064 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 371998.9      537.7 691.805  &lt; 2e-16 ***
+sin         -21669.2      761.5 -28.455  &lt; 2e-16 ***
+cos         -32508.8      759.4 -42.810  &lt; 2e-16 ***
+sin2          -732.1      760.4  -0.963    0.336    
+cos2         -5398.2      760.4  -7.099 1.43e-12 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 38220 on 5049 degrees of freedom
+Multiple R-squared:  0.348, Adjusted R-squared:  0.3475 
+F-statistic: 673.6 on 4 and 5049 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(linmodel_ciclo3)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -630,24 +676,34 @@ Residual standard error: 38180 on 5047 degrees of freedom
 Multiple R-squared:  0.3498,    Adjusted R-squared:  0.349 
 F-statistic: 452.5 on 6 and 5047 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>results_ciclo<span class="ot">=</span>linmodel_ciclo<span class="sc">$</span>fitted.values</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>results_ciclo<span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(results_ciclo)</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>results_ciclo_ts<span class="ot">&lt;-</span><span class="fu">ts</span>(results_ciclo,<span class="at">start=</span><span class="fu">c</span>(<span class="dv">2004</span>,<span class="dv">10</span>,<span class="dv">01</span>),<span class="at">frequency=</span><span class="fl">365.25</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>results_ciclo1<span class="ot">=</span>linmodel_ciclo1<span class="sc">$</span>fitted.values</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>results_ciclo1<span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(results_ciclo1)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>results_ciclo_ts1<span class="ot">&lt;-</span><span class="fu">ts</span>(results_ciclo1,<span class="at">start=</span><span class="fu">c</span>(<span class="dv">2004</span>,<span class="dv">10</span>,<span class="dv">01</span>),<span class="at">frequency=</span><span class="fl">365.25</span>)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>results_ciclo2<span class="ot">=</span>linmodel_ciclo2<span class="sc">$</span>fitted.values</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>results_ciclo2<span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(results_ciclo2)</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>results_ciclo_ts2<span class="ot">&lt;-</span><span class="fu">ts</span>(results_ciclo2,<span class="at">start=</span><span class="fu">c</span>(<span class="dv">2004</span>,<span class="dv">10</span>,<span class="dv">01</span>),<span class="at">frequency=</span><span class="fl">365.25</span>)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>results_ciclo3<span class="ot">=</span>linmodel_ciclo3<span class="sc">$</span>fitted.values</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>results_ciclo3<span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(results_ciclo3)</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>results_ciclo_ts3<span class="ot">&lt;-</span><span class="fu">ts</span>(results_ciclo3,<span class="at">start=</span><span class="fu">c</span>(<span class="dv">2004</span>,<span class="dv">10</span>,<span class="dv">01</span>),<span class="at">frequency=</span><span class="fl">365.25</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>En la <span class="quarto-unresolved-ref">?fig-energestacionalidad</span> se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie, AGREGAR MAIS COZINHAS.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Series original</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2, <span class="at">main=</span><span class="st">"Serie de tiempo del consumo de energía"</span>,</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">cex.main=</span><span class="fl">1.3</span>,</span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab=</span><span class="st">"Tiempo "</span>,</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab=</span><span class="st">"Energía consumida"</span>,</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">cex.lab=</span><span class="fl">0.4</span>)</span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimación de la estacionalidad</span></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(results_ciclo_ts,<span class="at">col=</span><span class="st">"red"</span>)</span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Serie sin estacionalidad</span></span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2<span class="sc">-</span>results_ciclo_ts)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Series original</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2, <span class="at">main=</span><span class="st">"Serie de tiempo del consumo de energía"</span>,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">cex.main=</span><span class="fl">1.3</span>,</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab=</span><span class="st">"Tiempo "</span>,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab=</span><span class="st">"Energía consumida"</span>,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">cex.lab=</span><span class="fl">0.4</span>)</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimación de la estacionalidad</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(results_ciclo_ts1,<span class="at">col=</span><span class="st">"darkcyan"</span>)</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(results_ciclo_ts2,<span class="at">col=</span><span class="st">"magenta"</span>)</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(results_ciclo_ts3,<span class="at">col=</span><span class="st">"orange"</span>)</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Serie sin estacionalidad</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(energia2<span class="sc">-</span>results_ciclo_ts3)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-energestacionalidad-1" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">

@@ -271,7 +271,7 @@ gg_subseries(tsbl_energia,y=Energia,period=12)
 
 #### Para los datos originales
 
-En la @fig-periodoriginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año. 
+En la @fig-periodorginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año. 
 
 ```{r}
 #| label: fig-periodorginenerg
@@ -331,13 +331,7 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergi
 
 ### Estimación
 
-Para estimar la estacionalidad se usan las componentes de Fourier. Fourier mostró que toda función periódica puede representarse como una suma de funciones sinusoidales de distinta amplitud y frecuencia. La idea entonces es generalizar el análisis anterior para un ciclo a suma de funciones armónicas con distintas frecuencias. Dada la serie de longitud $(T)$, se denomina periodo básico o de Fourier, a las fracciones exactas del tamaño muestral, es decir $[s_j=\frac{T}{j},\ \ j=1,2,\cdots,T/2]$.
-
-El valor máximo de periodo básico se obtiene para $(j=1)$ y es $(T)$, es decir, se observa la onda una sola vez. El mínimo se obtiene para $(j=T/2)$ y es $2$ ya que no se puede observar periodos que duren menos de $2$ observaciones. Como antes, suele usarse las frecuencias en lugar de los periodos para el ajuste de los ciclos, así que las frecuencias básicas o de Fourier se define como $[f_j=\frac{j}{T}\ \ j=1,2,\cdots,T/2.]$
-
-Así, $(1/T\leq f_j\leq 1/2)$, y el valor máximo sería $(f_j=0.5)$ y se conoce como la frecuencia Nyquist. Con esto, una serie de tiempo $(Z_t)$ que es periódica se puede representar mediante $[Z_t=\mu+\sum_{j=1}^{T/2}A_j\sin(\omega_j t)+\sum_{j=1}^{T/2}B_j\cos(\omega_j t)+a_t]$, para seleccionar la frecuencia que debe ser incluída para explicar la serie se usa el periodograma. Se puede verificar que la contribución de una onda a la varianza es dada por $(\frac{\hat{R}^2}{2})$, así que ondas asociadas con amplitudes grandes serán importantes en la explicación de la variabilidad de la serie, mientras que ondas asociadas con amplitudes bajas serán poco importantes. Los estimadores de los coeficientes $(A_j)$ y $(B_j)$ están dados por $\hat{A}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\sin(\omega_j t)$, $\hat{B}_j=\frac{2}{T}\sum_{t=1}^{T}Z_t\cos(\omega_j t)$ y $hat{R}_j=\hat{A}_j^2+\hat{B}_j^2$, donde $(\omega_j=2\pi f_j)$ y $(f=\frac{j}{T})$, con lo cual $TS_z^2=\frac{T}{2}\sum_{j=1}^{T/2}\hat{R}_j^2$.
-
-Se puede considerar la amplitud calculada para la frecuencia $(f_j)$ como un promedio de las amplitudes existentes en las frecuencias situadas en el intervalo $(f_j\pm \frac{1}{2}T)$. Con esto, se puede obtener el periodograma suavizado construyendo rectángulos con centro $(f_j$), base igual a $(1/T)$ y alturas $(I(f_j)=T\hat{R}_j/2)$.
+Ahora procederemos a estimar el ciclo estacional que se observa en esta serie de tiempo, es importante resaltar que con ayuda de los graficos exploratorios y el periodograma se observo que el periodo de la componente estacional es $s=12$, por lo tanto utilizaremos en primer lugar componentes de fourier, esto teniendo en cuenta que se aprecia que la componente estacional sigue un comportamiento deterministico y posiblemente sinosoidal. Teniendo lo anterior en cuenta el modelo viene dado por: $$\begin{align*} x_t&= ∑_{i=1}^k a_icos(k𝜔t)+b_isen(k𝜔t) + w_t \\ \end{align*}$$ Donde $k$ corresponderá al orden de la expansión en series de Fourier y los coeficientes $a_i$ y $b_i$ con $i=1,...,k$ serán estimados a través del método de mínimos cuadrados. El cálculo de esta componente se muestra a continuación considerando un orden $k=3$.
 
 ```{r}
 s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
@@ -365,15 +359,28 @@ energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
 energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
 energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
 
-linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3,data=energia_copia)
-summary(linmodel_ciclo)
+linmodel_ciclo1<-lm(Energia~1+sin+cos,data=energia_copia)
+linmodel_ciclo2<-lm(Energia~1+sin+cos+sin2+cos2,data=energia_copia)
+linmodel_ciclo3<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3,data=energia_copia)
 
-results_ciclo=linmodel_ciclo$fitted.values
-results_ciclo<-as.data.frame(results_ciclo)
-results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+summary(linmodel_ciclo1)
+summary(linmodel_ciclo2)
+summary(linmodel_ciclo3)
+
+results_ciclo1=linmodel_ciclo1$fitted.values
+results_ciclo1<-as.data.frame(results_ciclo1)
+results_ciclo_ts1<-ts(results_ciclo1,start=c(2004,10,01),frequency=365.25)
+
+results_ciclo2=linmodel_ciclo2$fitted.values
+results_ciclo2<-as.data.frame(results_ciclo2)
+results_ciclo_ts2<-ts(results_ciclo2,start=c(2004,10,01),frequency=365.25)
+
+results_ciclo3=linmodel_ciclo3$fitted.values
+results_ciclo3<-as.data.frame(results_ciclo3)
+results_ciclo_ts3<-ts(results_ciclo3,start=c(2004,10,01),frequency=365.25)
 ```
 
-En la @fig-energestacionalidad se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie, AGREGAR MAIS COZINHAS.
+En la @fig-energestacionalidad se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie. Se toma una componente de Fourier, ya que no hay una diferencia visible al utilizar 2 y 3.
 
 ```{r}
 #| label: fig-energestacionalidad
@@ -388,8 +395,10 @@ plot(energia2, main="Serie de tiempo del consumo de energía",
      cex.lab=0.4)
 
 # Estimación de la estacionalidad
-lines(results_ciclo_ts,col="red")
+lines(results_ciclo_ts1,col="darkcyan")
+lines(results_ciclo_ts2,col="magenta")
+lines(results_ciclo_ts3,col="orange")
 
 # Serie sin estacionalidad
-plot(energia2-results_ciclo_ts)
+plot(energia2-results_ciclo_ts1)
 ```
