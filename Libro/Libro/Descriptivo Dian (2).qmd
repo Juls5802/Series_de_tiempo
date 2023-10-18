@@ -63,7 +63,7 @@ Donde el $λ$ apropiado debe ser estimado. Nótese que esta transformación es p
 ```{r}
 #| label: fig-1
 #| fig-cap: >
-#|    Gráfico del valor lambda que maximiza la verosmilitud.
+#|    Gráfico del valor lambda que maximiza la logverosmilitud.
 MASS::boxcox(lm(dian2 ~ 1),seq(-5, 5, length = 50)) ##Notese que no acputra al 1
 forecast::BoxCox.lambda(dian2, method ="loglik",
                         lower = -1, upper = 3)#Entrega el valor de lambda (0.1).

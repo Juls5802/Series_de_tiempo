@@ -25,8 +25,6 @@ library(plotly)
 
 ```{r}
 #| warning: false
-#| echo: false
-#| results: false
 
 # Carga de la base de datos
 AEP_hourly<-read.csv("AEP_hourly.csv")
@@ -40,7 +38,21 @@ energia<-energia[-5055,]
 energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
 ```
 
-Según lo observado en la serie de tiempo, visualmente se tiene:
+Según lo observado en la serie de tiempo (@fig-serieenergia2), visualmente se tiene:
+
+```{r}
+#| label: fig-serieenergia2
+#| fig-cap: >
+#|    Gráfico de la verosimilitud en función del hiperparámetro lambda.
+
+# Gráfico de la serie de tiempo
+energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+```
 
 -   **Heterocedasticidad marginal:** Se puede observar que la varianza de cada instante en la serie es casi la misma. Al parecer no es necesario estabilizar la varianza.
 -   **Tendencia:** A simple vista se observa que, a medida que pasa el tiempo la serie oscila al rededor del mismo valor, por lo tanto, no es necesario estimar la tendencia.
@@ -338,7 +350,7 @@ s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
 
 sin_est=diff(energia2,lag=round(s),differences=1)
 
-plot.ts(sin_est, main="Serie sin estacionalidad", ylab='')
+plot.ts(sin_est, main="Serie diferenciada", ylab='')
 ```
 
 ```{r}

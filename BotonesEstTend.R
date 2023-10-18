@@ -7,7 +7,6 @@ library(forecast)
 library(gridExtra)
 library(feasts)
 library(fable)
-setwd("C:/Users/andre/OneDrive/Escritorio/Andrés/2023-2/Series de tiempo/Proyecto")
 dian<-read_excel("dian.xlsx", range="A7:C313", sheet = "Rec mensual a junio 2023" )
 años<-2000:2023
 dian<-dplyr::filter(dian,Año %in% años)
@@ -25,10 +24,10 @@ ui <- fluidPage(
       h3("Para estimar la tendencia es posible utilizar diferentes estrategias
          tanto paramétricas como no paramétricas, presiona cada uno de los botones 
          para observar el gráfico que se obtiene con cada metodología."),
-      actionButton("btn1", "Estimacion parametrica"),
-      actionButton("btn2", "Filtro de promedio moviles"),
-      actionButton("btn3", "Descompposición STL."),
-      actionButton("btn4", "Diferenciación.")
+      actionButton("btn1", "Estimación paramétrica"),
+      actionButton("btn2", "Filtro de promedio móviles"),
+      actionButton("btn3", "Descomposición STL"),
+      actionButton("btn4", "Diferenciación")
     ),
     mainPanel(
       plotOutput("plot")
