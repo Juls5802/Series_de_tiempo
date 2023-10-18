@@ -362,4 +362,4 @@ Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (
 
 ## Desestacionalizar o eliminación de la componente estacional
 
-Para la estimación de la tendencia pasaremos al archivo en phyton, donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de redes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.
+Para la estimación de la tendencia pasaremos al archivo en [phyton](https://github.com/Juls5802/Series_de_tiempo/blob/main/Arboles%20de%20decisi%C3%B3n%20y%20estimacion%20de%20la%20estacionalidad.ipynb), donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de redes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.

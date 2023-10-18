@@ -402,3 +402,6 @@ lines(results_ciclo_ts3,col="orange")
 # Serie sin estacionalidad
 plot(energia2-results_ciclo_ts1)
 ```
+
+
+A continuación, presentaremos el modelo de árboles y ell modelo de redes neuronales multicapa paraa esta serie de tiempo, disponible [aquí](https://github.com/Juls5802/Series_de_tiempo/blob/main/Energia.ipynb).
