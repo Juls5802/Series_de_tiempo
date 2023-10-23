@@ -99,17 +99,17 @@ plot(energia_decompo)
 energia_decompo$trend # Hay NA's :(
 
 ### STL (no está funcionando)####
-tsibble_energia<-as_tsibble(energia2)
+#tsibble_energia<-as_tsibble(energia2)
 #tsibble_energia <- tsibble_energia %>%
 #  fill_gaps()
-str(tsibble_energia)
-tsibble_energia %>%
-  model(
-    STL(value ~ trend() +
-          season(window = "periodic"),
-        robust = TRUE)) %>%
-  components() %>%
-  autoplot()
+#str(tsibble_energia)
+#tsibble_energia %>%
+#  model(
+#    STL(value ~ trend() +
+#          season(window = "periodic"),
+#        robust = TRUE)) %>%
+#  components() %>%
+#  autoplot()
 
 ### Primera diferenciación ####
 tsibble_energia<-as_tsibble(energia2)
@@ -177,6 +177,7 @@ tsbl_lineal=as_tsibble(tbl_lineal_format_fecha,index=fecha)
 gg_subseries(tsbl_lineal,y=Energia,period=7) # hay un cambio los sabados, domingos y lunes
 
 ##### Diferenciacion ####
+diferencia<-diff(energia2)
 diferencia_1<-cbind(as.matrix(diferencia),as.character(energia$fecha[-1]))
 diferencia_1<-as.data.frame(diferencia_1)
 names(diferencia_1)<-c("Energia","fecha")
@@ -199,6 +200,8 @@ gg_subseries(tsbl_lineal,y=Energia,period=12)
 
 ##### Diferenciacion ####
 gg_subseries(tsbl_diferencia,y=Energia,period=12)
+
+
 ## Explorando multiples estacionalidades ######
 
 ##### Diferenciada ####
