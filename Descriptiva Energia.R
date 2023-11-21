@@ -191,7 +191,7 @@ tbl_diferencia_format_fecha=tbl_diferencia
 tsbl_diferencia=as_tsibble(tbl_diferencia_format_fecha,index=fecha)
 gg_subseries(tsbl_diferencia,y=Energia,period=7) # hay un cambio los sabados, domingos y lunes
 
-### Subserie semanal ####
+### Subserie mensual ####
 ##### Original ####
 gg_subseries(tsbl_energia,y=Energia,period=12) # no se ve nada pero puede ser por la multiple estacionalidad
 
@@ -439,6 +439,188 @@ plot(diferencia, main="Serie de tiempo de la energía diaria de una empresa esta
 lines(results_ciclo_ts,col="red")
 
 plot(energia2-results_ciclo_ts)
+
+## ambos Estimación ####
+# Usando regresión para descubrir un ciclo (periodograma)
+frec_ang=(2*pi/182) #w=2*pi/s, tomamos s=7 pq dijimos que 182 es multiplo de 7 y tiene más sentido un periodo de 7
+
+##### Original ####
+energia_copia=energia
+str(energia_copia)
+
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5054)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5054)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
+
+frec_ang2=(2*pi/7)
+
+#Fourier k=1 
+energia_copia$sin4 = sin(c(1:5054)*(1*frec_ang2))
+energia_copia$cos4 = cos(c(1:5054)*(1*frec_ang2))
+
+#Fourier k=2 
+energia_copia$sin5 = sin(c(1:5054)*(2*frec_ang2))
+energia_copia$cos5 = cos(c(1:5054)*(2*frec_ang2))
+
+#Fourier k=3 
+energia_copia$sin6 = sin(c(1:5054)*(3*frec_ang2))
+energia_copia$cos6 = cos(c(1:5054)*(3*frec_ang2))
+
+#X<-cbind(energia_copia$sin,energia_copia$cos,energia_copia$sin2,energia_copia$cos2,energia_copia$sin3,energia_copia$cos3)
+#Y=energia_copia$Energia
+
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3+sin4+cos4+sin5+cos5+sin6+cos6,data=energia_copia)
+summary(linmodel_ciclo)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+str(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+par(mfrow=c(1,1))
+plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4,
+     xlim=c(2004,2006))
+lines(results_ciclo_ts,col="red")
+
+plot(energia2-results_ciclo_ts,xlim=c(2004,2006))
+
+##### Tendencia Lineal (sin) ####
+energia_copia<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+energia_copia<-as.data.frame(energia_copia)
+names(energia_copia)<-c("Energia","fecha")
+
+energia_copia$fecha<-as.Date(energia_copia$fecha)
+head(energia_copia)
+
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5054)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5054)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
+
+
+#Fourier k=1 
+energia_copia$sin4 = sin(c(1:5054)*(1*frec_ang2))
+energia_copia$cos4 = cos(c(1:5054)*(1*frec_ang2))
+
+#Fourier k=2 
+energia_copia$sin5 = sin(c(1:5054)*(2*frec_ang2))
+energia_copia$cos5 = cos(c(1:5054)*(2*frec_ang2))
+
+#Fourier k=3 
+energia_copia$sin6 = sin(c(1:5054)*(3*frec_ang2))
+energia_copia$cos6 = cos(c(1:5054)*(3*frec_ang2))
+
+#X<-cbind(energia_copia$sin,energia_copia$cos,energia_copia$sin2,energia_copia$cos2,energia_copia$sin3,energia_copia$cos3)
+#Y=energia_copia$Energia
+
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3+sin4+cos4+sin5+cos5+sin6+cos6,data=energia_copia)
+summary(linmodel_ciclo)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+str(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+
+plot(ElimiTendenerg, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4,
+     xlim=c(2004,2006))
+lines(results_ciclo_ts,col="red")
+
+#energia_estacionarios<-energia2-results_ciclo_ts
+#saveRDS(energia_estacionarios, file="energia_estacionarios.RDS")
+plot(energia2-results_ciclo_ts)
+plot(energia2-results_ciclo_ts,xlim=c(2004,2006))
+diferenciaestacionarios<-energia2-results_ciclo_ts
+
+diferenciaesta_1<-cbind(as.matrix(diferenciaestacionarios),as.character(energia$fecha))
+diferenciaesta_1<-as.data.frame(diferenciaesta_1)
+colnames(diferenciaesta_1)<-c("Energia","fecha")
+
+diferenciaesta_1$Energia<-as.numeric(diferenciaesta_1$Energia)
+diferenciaesta_1$fecha<-as.Date(diferenciaesta_1$fecha)
+
+df_diferenciaesta=data.frame(Energia=diferenciaesta_1$Energia,fecha=diferenciaesta_1$fecha)
+tbl_diferenciaesta=tibble(df_diferenciaesta)
+tbl_diferenciaesta_format_fecha=tbl_diferenciaesta
+tsbl_diferenciaesta=as_tsibble(tbl_diferenciaesta_format_fecha,index=fecha)
+gg_subseries(tsbl_diferenciaesta,y=Energia,period=7) 
+
+
+gg_subseries(tsbl_diferenciaesta,y=Energia,period=12) 
+##### Diferenciada ####
+energia_copia<-cbind(as.matrix(diferencia),as.character(energia$fecha[-1]))
+energia_copia<-as.data.frame(energia_copia)
+names(energia_copia)<-c("Energia","fecha")
+
+energia_copia$fecha<-as.Date(energia_copia$fecha)
+head(energia_copia)
+
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5053)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5053)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5053)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5053)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5053)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5053)*(3*frec_ang))
+
+#Fourier k=1 
+energia_copia$sin4 = sin(c(1:5053)*(1*frec_ang2))
+energia_copia$cos4 = cos(c(1:5053)*(1*frec_ang2))
+
+#Fourier k=2 
+energia_copia$sin5 = sin(c(1:5053)*(2*frec_ang2))
+energia_copia$cos5 = cos(c(1:5053)*(2*frec_ang2))
+
+#Fourier k=3 
+energia_copia$sin6 = sin(c(1:5053)*(3*frec_ang2))
+energia_copia$cos6 = cos(c(1:5053)*(3*frec_ang2))
+
+#X<-cbind(energia_copia$sin,energia_copia$cos,energia_copia$sin2,energia_copia$cos2,energia_copia$sin3,energia_copia$cos3)
+#Y=energia_copia$Energia
+
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3+sin4+cos4+sin5+cos5+sin6+cos6,data=energia_copia)
+summary(linmodel_ciclo)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+str(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+
+plot(diferencia, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+lines(results_ciclo_ts,col="red")
+
+plot(energia2-results_ciclo_ts)
+plot(energia2-results_ciclo_ts,xlim=c(2004,2007))
+
 
 
 # PREGUNTAS PROFE ####
