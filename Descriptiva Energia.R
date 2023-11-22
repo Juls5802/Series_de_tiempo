@@ -552,6 +552,7 @@ lines(results_ciclo_ts,col="red")
 plot(energia2-results_ciclo_ts)
 plot(energia2-results_ciclo_ts,xlim=c(2004,2006))
 diferenciaestacionarios<-energia2-results_ciclo_ts
+plot(diferenciaestacionarios)
 
 diferenciaesta_1<-cbind(as.matrix(diferenciaestacionarios),as.character(energia$fecha))
 diferenciaesta_1<-as.data.frame(diferenciaesta_1)
@@ -629,3 +630,4 @@ plot(energia2-results_ciclo_ts,xlim=c(2004,2007))
 # 2. El PACF de las tres series no cambia mucho, entonces?
 # 3. En la estimación de la estacionalidad mezclamos los dos periodos (7 y 365 días) o por aparte o solo 7?
 # 4. Cómo mezclamos esos dos periodos en árboles y redes, qué retardos tomo? los ultimos 7 (o 365 pero es que ya sería mucho)?
+
