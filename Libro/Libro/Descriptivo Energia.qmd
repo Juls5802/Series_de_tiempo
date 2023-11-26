@@ -2,8 +2,8 @@
 
 ```{r}
 #| warning: false
-#| echo: false
-#| results: false
+#| message: false
+# Librerías necesarias
 library(TSstudio)
 library(readxl)
 library(dplyr)
@@ -204,57 +204,37 @@ acf(resid(fit_e), 60, main="ACF Sin tendencia")
 acf(diff(energia2), 60, main="ACF Primera Diferencia")
 ```
 
-Si bien se estima la tendencia con diferentes métodos, se decide trabajar con los datos originales, ya que no hay un cambio significativo en la serie cuando se elimina la tendencia.
+Si bien se estima la tendencia con diferentes métodos, se decide trabajar con la serie sin tendencia líneal.
+
+## Gráficas de retardos e índice AMI
+
+```{r}
+par(mar = c(3, 2, 3, 2))
+astsa::lag1.plot(ElimiTendenerg, 7,corr=F)
+```
+```{r}
+tseriesChaos::mutual(ElimiTendenerg, partitions = 50, lag.max = 10, plot=TRUE) # AMI serie sin tendencia lineal
+```
+
+Es posible ver que el primer rezago reduce el estado de incertidumbre para la observación en el tiempo $t$.
 
 ## Estimación de la estacionalidad
 
 ### Detección de estacionalidad
 
-En la @fig-serietiempoenergiaretardos se puede observar el gráfico de retardos para la serie original, es evidente que hay una asociación lineal más fuerte para el primer retardo, aunque para los demás retardos también se encuentra asociación lineal.
-
-```{r}
-#| label: fig-serietiempoenergiaretardos
-#| fig-cap: >
-#|    Gráficos de retardos para la serie de consumo de energía.
-
-# Gráfica de retardos
-par(mar = c(3, 2, 3, 2))
-astsa::lag1.plot(energia2, 7,corr=F)
-```
-
-En la @fig-serietiempoenergiaretardosdiff se puede ver el gráfico de retardos para la serie sin tendencia estimada con diferenciación, aquí no es visible ninguna asociación lineal fuerte entre los rezagos.
-
-```{r}
-#| label: fig-serietiempoenergiaretardosdiff
-#| fig-cap: >
-#|    Gráficos de retardos para la serie sin tendencia estimada con diferenciación.
-
-# Gráfica de retardos
-astsa::lag1.plot(diff(energia2), 7,corr=F)
-```
-
-Adicionalmente se calcula el índice AMI, el cual se puede visualizar en la @fig-serietiempoenergiaami.
-
-```{r}
-#| label: fig-serietiempoenergiaami
-#| fig-cap: >
-#|    Gráfico del promedio de información mutua.
-
-# Indice AMI 
-tseriesChaos::mutual(energia2, partitions = 50, lag.max = 10, plot=TRUE) 
-```
-
-Es posible ver que el primer rezago reduce el estado de incertidumbre para la observación en el tiempo $t$.
-
 ```{r}
 #| warning: false
-energiasss<-rbind(energia,c("2018-08-03",0))
-energia_df1<-energiasss
-energia_df1$time = as.POSIXct(energia_df1$fecha, "%Y-%m-%d")
-energia_df<-cbind(energia_df1[1:5054,1:2],energia_df1[2:5055,3])
+lineal_1<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+lineal_1<-as.data.frame(lineal_1)
+names(lineal_1)<-c("Energia","fecha")
 
-energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
-energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
+lineal_1$Energia<-as.numeric(lineal_1$Energia)
+lineal_1$fecha<-as.Date(lineal_1$fecha)
+
+df_lineal=data.frame(Energia=lineal_1$Energia,fecha=lineal_1$fecha)
+tbl_lineal=tibble(df_lineal)
+tbl_lineal_format_fecha=tbl_lineal
+tsbl_lineal=as_tsibble(tbl_lineal_format_fecha,index=fecha)
 ```
 
 En la @fig-serietiempoenergiasubseriediar se presenta el gráfico de subseries diarias para la serie original, se puede ver que hay estacionalidad ya que el valor medio del día domingo por ejemplo, es menor al del resto de días.
@@ -265,10 +245,10 @@ En la @fig-serietiempoenergiasubseriediar se presenta el gráfico de subseries d
 #|    Gráfica de subseries diarias.
 
 # Gráfica de subseries semanal con datos originales
-gg_subseries(tsbl_energia,y=Energia,period=7)
+gg_subseries(tsbl_lineal,y=Energia,period=7)
 ```
 
-En la @fig-serietiempoenergiasubseriean se presenta el gráfico de subseries mensuales para la serie original, se puede ver que no hay ciclos estacionales mensuales, ya que todos tienen la misma media.
+En la @fig-serietiempoenergiasubseriean se presenta el gráfico de subseries mensuales para la serie original, se puede ver que no hay ciclos estacionales mensuales, ya que todos tienen la misma media. Sin embargo, esto puede deberse a la presencia de la múlriple estacionalidad.
 
 ```{r}
 #| label: fig-serietiempoenergiasubseriean
@@ -276,32 +256,40 @@ En la @fig-serietiempoenergiasubseriean se presenta el gráfico de subseries men
 #|    Gráfica de subseries anuales.
 
 # Gráfica de subseries anual con datos originales
-gg_subseries(tsbl_energia,y=Energia,period=12)
+gg_subseries(tsbl_lineal,y=Energia,period=12)
 ```
 
-### Periodograma
-
-#### Para los datos originales
-
-En la @fig-periodorginenerg se presenta el periodograma para la serie original, el valor del periodo donde se maximiza el periodograma es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
 
 ```{r}
-#| label: fig-periodorginenerg
-#| fig-cap: >
-#|    Periodograma para la serie original.
+#| warning: false
+energia_df<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+energia_df<-as.data.frame(energia_df)
+names(energia_df)<-c("Energia","Fecha")
 
-# Periodograma Datos originales
-spectrum(as.numeric(energia2),log='no')
+energia_df$Fecha<-as.Date(energia_df$Fecha)
+energia_df$time = as.POSIXct(energia_df$Fecha, "%Y-%m-%d")
+energia_df$weekday <- wday(energia_df$time, label = TRUE, abbr = TRUE)
+energia_df$month <- factor(month.abb[month(energia_df$time)], levels =   month.abb)
 
-PeriodogramaEnergia2=spectrum(as.numeric(energia2),log='no')
-ubicacionenergia=which.max(PeriodogramaEnergia2$spec)
+# Agrupamos por mes y día
+energia_df$Energia<-as.numeric(energia_df$Energia)
+energia_mensual <- energia_df %>%
+  dplyr::filter(weekday == "dom\\." | weekday == "mar\\." ) %>% # martes se parece al comportamiento de lunes-viernes, domingo se parece a sabado
+  dplyr::group_by(weekday, month) %>%
+  dplyr::summarise(mean = mean(Energia, na.rm = TRUE),
+                   sd = sd(Energia, na.rm = TRUE))
 
-sprintf("El valor de la frecuencia donde se maximiza el periodograma para la serie es: %s",PeriodogramaEnergia2$freq[ubicacionenergia])
+# Grafico consumo (diferenciado) de energia mensual por dia
+plot_ly(data = energia_mensual, x = ~ month, y = ~ mean, type =
+          "bar",color = ~ weekday) %>%
+  layout(title = "Promedio diario de energía por día de la semana",
+         yaxis = list(title = "Media"),
+         xaxis = list(title = "Mes"))
 
-sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergia2$freq[ubicacionenergia])
 ```
 
-#### Para la serie sin tendencia lineal
+
+### Periodograma
 
 En la @fig-periodlinealenerg se presenta el periodograma para la serie sin tendencia lineal, el valor del periodo donde se maximiza el periodograma nuevamente es $182.86$, es decir, aproximadamente, el ciclo es de medio año.
 
@@ -345,19 +333,17 @@ sprintf("El periodo correspondiente es aproximadamente: %s",1/PeriodogramaEnergi
 
 Ahora procederemos a estimar el ciclo estacional que se observa en esta serie de tiempo, es importante resaltar que con ayuda de los graficos exploratorios y el periodograma se observo que el periodo de la componente estacional es $s=12$, por lo tanto utilizaremos en primer lugar componentes de fourier, esto teniendo en cuenta que se aprecia que la componente estacional sigue un comportamiento deterministico y posiblemente sinosoidal. Teniendo lo anterior en cuenta el modelo viene dado por: $$\begin{align*} x_t&= ∑_{i=1}^k a_icos(k𝜔t)+b_isen(k𝜔t) + w_t \\ \end{align*}$$ Donde $k$ corresponderá al orden de la expansión en series de Fourier y los coeficientes $a_i$ y $b_i$ con $i=1,...,k$ serán estimados a través del método de mínimos cuadrados. El cálculo de esta componente se muestra a continuación considerando un orden $k=3$.
 
-```{r}
-s=1/PeriodogramaEnergia2$freq[ubicacionenergia]
-
-sin_est=diff(energia2,lag=round(s),differences=1)
-
-plot.ts(sin_est, main="Serie diferenciada", ylab='')
-```
 
 ```{r}
 # Frecuencia angular w=2*pi/s
-frec_ang=(2*pi/183)
+frec_ang=(2*pi/182)
+frec_ang2=(2*pi/7)
 
-energia_copia=energia
+energia_copia<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+energia_copia<-as.data.frame(energia_copia)
+names(energia_copia)<-c("Energia","fecha")
+
+energia_copia$fecha<-as.Date(energia_copia$fecha)
 
 #Fourier k=1 
 energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
@@ -371,25 +357,39 @@ energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
 energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
 energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
 
-linmodel_ciclo1<-lm(Energia~1+sin+cos,data=energia_copia)
-linmodel_ciclo2<-lm(Energia~1+sin+cos+sin2+cos2,data=energia_copia)
-linmodel_ciclo3<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3,data=energia_copia)
 
-summary(linmodel_ciclo1)
-summary(linmodel_ciclo2)
-summary(linmodel_ciclo3)
+#Fourier k=1 
+energia_copia$sin4 = sin(c(1:5054)*(1*frec_ang2))
+energia_copia$cos4 = cos(c(1:5054)*(1*frec_ang2))
 
-results_ciclo1=linmodel_ciclo1$fitted.values
-results_ciclo1<-as.data.frame(results_ciclo1)
-results_ciclo_ts1<-ts(results_ciclo1,start=c(2004,10,01),frequency=365.25)
+#Fourier k=2 
+energia_copia$sin5 = sin(c(1:5054)*(2*frec_ang2))
+energia_copia$cos5 = cos(c(1:5054)*(2*frec_ang2))
 
-results_ciclo2=linmodel_ciclo2$fitted.values
-results_ciclo2<-as.data.frame(results_ciclo2)
-results_ciclo_ts2<-ts(results_ciclo2,start=c(2004,10,01),frequency=365.25)
+#Fourier k=3 
+energia_copia$sin6 = sin(c(1:5054)*(3*frec_ang2))
+energia_copia$cos6 = cos(c(1:5054)*(3*frec_ang2))
 
-results_ciclo3=linmodel_ciclo3$fitted.values
-results_ciclo3<-as.data.frame(results_ciclo3)
-results_ciclo_ts3<-ts(results_ciclo3,start=c(2004,10,01),frequency=365.25)
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3+sin4+cos4+sin5+cos5+sin6+cos6,data=energia_copia)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+
+plot(ElimiTendenerg, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4)
+lines(results_ciclo_ts,col="red")
+
+plot(ElimiTendenerg, main="Serie de tiempo de la energía diaria de una empresa estadounidense",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Energía consumida",
+     cex.lab=0.4,
+     xlim=c(2004,2007))
+lines(results_ciclo_ts,col="red",xlim=c(2004,2007))
 ```
 
 En la @fig-energestacionalidad se presenta la serie original con la estimación de la componente estacional via componentes de Fourier y la serie sin estacionalidad. Se puede notar que las componentes de Fourier logran captar bien es cíclo estacional que tiene la serie. Se toma una componente de Fourier, ya que no hay una diferencia visible al utilizar 2 y 3.
@@ -399,20 +399,10 @@ En la @fig-energestacionalidad se presenta la serie original con la estimación 
 #| fig-cap: >
 #|    Serie original con estamación de la componente estacional y serie sin estacionalidad.
 
-# Series original
-plot(energia2, main="Serie de tiempo del consumo de energía",
-     cex.main=1.3,
-     xlab="Tiempo ",
-     ylab="Energía consumida",
-     cex.lab=0.4)
-
-# Estimación de la estacionalidad
-lines(results_ciclo_ts1,col="darkcyan")
-lines(results_ciclo_ts2,col="magenta")
-lines(results_ciclo_ts3,col="orange")
-
-# Serie sin estacionalidad
-plot(energia2-results_ciclo_ts1)
+energia_estacionarios<-ElimiTendenerg-results_ciclo_ts
+saveRDS(energia_estacionarios, file="energia_estacionarios.RDS")
+plot(ElimiTendenerg-results_ciclo_ts)
+plot(ElimiTendenerg-results_ciclo_ts,xlim=c(2004,2007))
 ```
 
 

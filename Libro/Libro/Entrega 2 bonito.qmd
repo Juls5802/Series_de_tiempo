@@ -1,0 +1,581 @@
+# Ajuste de modelos para serie de Energía
+
+Como vimos en la sección anterior. Para la serie de energía no fue necesario estabilizar la varianza, sin embargo, esta presenta tanto tendencia como multiple estacionalidad ($7$ y $365.25$)
+
+Una vez realizado el análisis descriptivo de la serie de energía, se da inicio al modelamiento de la misma. Este se hará por medio de 3 modelos:
+
+-   Suavizamiento exponencial
+-   Modelo ARMA con series de Fourier
+
+Estos modelos serán contrastados con base en su capacidad predictiva para seleccionar el mejor y realizar prediciones con él acerca del consumo diario de energia de la empresa PJM para fechas poseriores al año 2018.
+
+```{r}
+#| warning: false
+#| message: false
+# Librerías necesarias
+library(TSstudio)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(astsa)
+library(feasts)
+library(fable)
+library(timetk)
+library(tsibble)
+library(zoo)
+library(xts)
+library(readxl)
+library(tidyverse)
+library(nonlinearTseries)
+library(tseriesChaos) 
+library(forecast)
+library(plotly)
+library(dplyr)
+library(parsnip)
+library(rsample)
+library(timetk)
+library(modeltime)
+library(tsibble)
+library(tidymodels)
+library(greybox)
+library(TSA)
+library(urca)
+library(lmtest)
+library(uroot)
+library(fUnitRoots)
+library(sarima)
+library(TSA)
+require("PolynomF")
+require("forecast")
+```
+
+## Suavizamiento Exponencial
+
+##### Carga de la base de datos
+
+```{r}
+# Carga de la base de datos
+AEP_hourly<-read.csv("AEP_hourly.csv")
+AEP_hourly$Datetime<-as.POSIXct(AEP_hourly$Datetime, format = "%Y-%m-%d %H:%M:%S")
+AEP_hourly$fecha<-as.Date(AEP_hourly$Datetime)
+
+energia <- AEP_hourly %>%
+  group_by(fecha) %>%
+  summarise(Energia = sum(AEP_MW))
+energia<-energia[-5055,]
+energia2<-ts(energia$Energia,start=c(2004,10,01),frequency=365.25)
+```
+
+```{r}
+# Creación del objeto msts indicando las dos estacionalidades
+ly <- msts(energia$Energia,start=c(2004,10,01), seasonal.periods=c(7,365.25))
+
+#HW_ly=stats::HoltWinters(ly,seasonal="additive") # parece que sí funciona
+
+# Predicciones
+#forecast::forecast(HW_ly,h=7,level =0.95)
+#plot(forecast::forecast(HW_ly,h=7,level =0.95))
+```
+
+#### Separación datos de entrenamiento y prueba
+
+Se hizo una división de los datos originales, el $85\%$ para datos de entrenamiento y el $15\%$ restante para datoos de prueba.
+
+```{r}
+# Separar train y test
+
+h=1 # Haremos predicciones 1-paso hacia delante
+
+# Datos entrenamiento
+ntrain=trunc(length(ly)*0.85) # 4295 datos
+train=window(ly,end=time(ly)[ntrain])
+
+# Datos prueba
+test=window(ly,start=time(ly)[ntrain]+1/365.25)
+ntest=length(test) # 729 datos
+
+# fchstepahe: Vector para guardar las predicciones h-pasos adelante
+fchstepahe=matrix(0,nrow=ntest,ncol=h) 
+
+# verval: Vector con los verdaderos valores de la serie en el conjunto de prueba con los que se compararán los pronósticos
+verval=test[1:ntest]
+```
+
+#### Ajuste del modelo
+
+En el modelo por medio de suavizamiento exponencial también se considera una descomposición de la serie de forma aditiva. Las componentes de tenendecia y la estacionalidad se estiman por medio de una estadística EWMA (promedio movil ponderado exponencialmente), dándole más peso a las observaciones más cercanas en cada tiempo.
+
+Además, para este caso, se descompone la componente de tendencia en nivel y pendiente, y se estima un parámetro de la componente estacional. Las estimaciones se hallan de la siguiente manera:
+
+$$\begin{align*}
+\text{Componente de nivel: } & a_t=α(x_t-S_{t-p})+(1−α)(a_{t−1}+b_{t−1})\\
+\text{Componente de pendiente: } & b_t=β(a_t−a_{t−1})+(1−β)b_{t−1} \\
+\text{Componente estacional: } & S_t=\gamma(x_t−a_t)+(1−γ)S_{t−p} \\
+\end{align*}$$
+
+Para encontrar los parámetros de suavizamiento $\alpha$, $\beta$ y $\gamma$ usamos una grilla con valores desde $0.001$ hasta $0.999$ de a $0.1$ para cada parámetro.
+
+```{r}
+#| eval: false
+require(utils)
+
+# Propuestas para cada parámetro
+suav_inputs=cbind(seq(0.001,0.999,0.1),seq(0.001,0.999,0.1),seq(0.001,0.999,0.1))
+colnames(suav_inputs)<-c("alpha","beta","gamma")
+suav_inputs_tbl=tibble::as_tibble(suav_inputs)
+
+# Creación de la grilla
+grilla_suav=expand.grid(alpha=suav_inputs_tbl$alpha,beta=suav_inputs_tbl$beta,gamma=suav_inputs_tbl$gamma)
+
+# Matriz para almacenar los errores
+errores<-matrix(NA, nrow=1000,ncol=3) 
+
+# Búsqueda de alpha, beta y gamma con rolling, queremos que minimice ECM
+for(i in 1:1000){
+  ourCallETS <- "forecast::forecast(stats::HoltWinters(x=data,alpha=grilla_suav[i,1],beta=grilla_suav[i,2],gamma=grilla_suav[i,3]),h=h,level=95)"
+  ourValueETS <- c("mean","lower","upper")
+  origins=ntest   # Número de rolling windows
+  Valoresretornados1 <- ro(ly, h=h, origins=origins, call=ourCallETS, value=ourValueETS,ci=FALSE,co=FALSE)
+  t(Valoresretornados1$holdout) # Permiten verificar los verdaderos valores h-pasos adelante. 
+  t(Valoresretornados1$mean)
+  errores[i,]<-sqrt(apply((Valoresretornados1$holdout -Valoresretornados1$mean)^2,1,mean,na.rm=TRUE)) # Se calcula la raíz del error cuadrático medio de predicción
+}
+
+# Error medio absoluto escalado
+errores<-na.omit(errores) 
+min(errores[,1]) # RECM= 47201.82
+which(errores[,1] == min(errores[,1])) # 885
+grilla_suav[885,] # alpha=0.701, beta=0.701, gamma=0.501
+```
+
+```{r}
+#| echo: false
+
+# Para verificar que sí da ese ECM
+for(i in 1:(ntest)){
+  x=window(ly,end=time(ly)[ntrain]+(i-1)/365.25)
+  refit=stats::HoltWinters(x,seasonal="additive",alpha=0.701,beta=0.701,gamma=0.501) # Ponemos los parametros de la grilla
+  fchstepahe[i,]=as.numeric(forecast::forecast(refit,h=h)$mean)
+}
+errores_pred = verval-fchstepahe # Verdadero en test - Pronóstico test
+ECM=apply(errores_pred^2,MARGIN = 2,mean,na.rm=TRUE)
+RECM=sqrt(ECM)
+RECM # 47201.82
+```
+
+De modo que el modelo final para suavizamiento exponencial es
+
+$$\begin{align*}
+\text{Componente de nivel: } & a_t=0.701(x_t-S_{t-p})+(1−0.701)(a_{t−1}+b_{t−1})\\
+\text{Componente de pendiente: } & b_t=0.701(a_t−a_{t−1})+(1−0.701)b_{t−1} \\
+\text{Componente estacional: } & S_t=0.7501(x_t−a_t)+(1−0.501)S_{t−p} \\
+\end{align*}$$
+
+#### Evaluar los supuestos
+
+Aunque en suavizamiento exponencial no se hacen supuestos sobre los residuales, aún así hicimos las pruebas para ver si los residuales tenían un comportamiento similar a ruido blanco.
+
+```{r}
+# Verificación de supuestos
+HW_train_grilla=stats::HoltWinters(train,seasonal="additive",alpha=0.701,beta=0.701,gamma=0.501) # con los parámetros que dieron mejor en la grilla
+
+# Residuales
+res <- ly-HW_train_grilla$fitted[,1]
+plot(res)
+```
+
+###### No autocorrelación
+
+Luego de ser modelados con el suavizamiento exponencial, parece que aún queda correlación por explicar
+
+```{r}
+# ACF
+acf(as.numeric(res)) # No deberían estar fuera de las bandas
+#acf(res^2)
+```
+
+###### No autocorrelación parcial
+
+```{r}
+# PACF
+pacf(as.numeric(res)) # No deberían estar fuera de las bandas
+```
+
+###### Test de normalidad
+
+Parece que no hay normalidad en los residuales
+
+```{r}
+# Test de normalidad
+## NO queremos rechazar H0 pero pues no es tan grave
+tseries::jarque.bera.test(res) # Dice que no son normales
+```
+
+###### Test de autocorrelación
+
+Luego de ser modelados con el suavizamiento exponencial, parece que los residuales están correlacionados
+
+```{r}
+# Test de autocorrelacion 
+## No quieremos rechazar H0
+Box.test(res, lag =20 , type = "Ljung-Box", fitdf = 2) # No puedo Rechazar la hipótesis de no autocorrelación!
+```
+
+###### Estabilización de la varianza
+
+CREO QUE ESTO ES MEJOR NO PONERLO PQ NO SÉ SI SIRVA PARA SUAVIZAMIENTO
+
+```{r}
+# Estadisticas CUSUM
+## Mide la estabilidad en los parámetros del modelo
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.01717####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+
+# Estadísticas CUSUMSQ
+## Mide la estabilidad en la varianza del modelo
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                           
+lines(LQI,type="S",col="red")
+```
+
+#### Predicciones sobre datos de prueba
+
+```{r}
+verval_ts<-ts(verval,start=time(ly)[ntrain]+1/365.25,frequency=365.25)
+fchstepahe_ts<-ts(fchstepahe,start=time(ly)[ntrain]+1/365.25,frequency=365.25)
+
+plot(verval_ts, col = "blue", ylab = "Energía", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+
+## Proceso ARMA
+
+#### Carga de la base de datos
+
+Para ajustar un modelo de la familia *ARMA(p,q)* es necesario que los datos sean estacionarios, por lo tanto, usamos los datos que resultan luego de eliminar la tendencia línealmente y eliminar la doble estacionalidad que fue modelada usando 6 componentes de Fourier (3 para $s=7$ y 3 para $s=182$)
+
+```{r}
+# Datos estacionales
+y<-readRDS("energia_estacionarios.RDS") # datos estacionarios
+plot(y)
+plot(y,xlim=c(2004,2006))
+```
+
+Comprobamos que son estacionarios observando la subserie semanal y la subserie mensual
+
+```{r}
+# Preliminares
+est_1<-cbind(as.matrix(y),as.character(energia$fecha))
+est_1<-as.data.frame(est_1)
+names(est_1)<-c("Energia","fecha")
+
+est_1$Energia<-as.numeric(est_1$Energia)
+est_1$fecha<-as.Date(est_1$fecha)
+
+df_est=data.frame(Energia=est_1$Energia,fecha=est_1$fecha)
+tbl_est=tibble(df_est)
+tbl_est_format_fecha=tbl_est
+tsbl_est=as_tsibble(tbl_est_format_fecha,index=fecha)
+
+# Subserie semanal
+gg_subseries(tsbl_est,y=Energia,period=7)
+
+# Subserie mensual
+gg_subseries(tsbl_est,y=Energia,period=12)
+```
+
+#### Búsqueda de los hiperparámetros *p* y *q*
+
+La búsqueda de los hiperparámetros *p* y *q* se hace vía ACF y PACF
+
+```{r}
+# Búsqueda de p,q vía acf y pacf
+
+# Búsqueda de q
+acf(as.numeric(y)) # Parece que q es gigante
+#acf(as.numeric(y),ci.type='ma') # En efecto, q es grande
+
+# Búsqueda de p
+pacf(as.numeric(y)) # p máximo 3, posiblemente 5 o 6
+```
+
+Luego de observar los gráficos, vemos que es posible que $p=6$ o menos, y $q$ debe ser grandísimo, por razones prácticas postulamos inicialmente $q=20$, es razonable postular un modelo *AR(6)* y refinarlo, así como también un modelo mixto *ARMA(6,20)* y refinarlo. No es nada razonable pensar en un $MA(q)$ puro por lo que vemos que el ACF decae excesivamente lento.
+
+```{r}
+#| echo: false
+# Propuesta modelo AR
+# Intentamos AR(6) y de ahí para abajo pero F
+#modelo.propuesto1=forecast::Arima(y,order=c(3,0,0),fixed=c(NA,NA,NA,0))
+#modelo.propuesto1
+#lmtest::coeftest(modelo.propuesto1) # todos son significativos menos el 4 y 5
+#AIC(modelo.propuesto1)
+#BIC(modelo.propuesto1)
+
+# Validacion de supuestos AR
+#res <- modelo.propuesto1$residuals
+#plot(res)
+
+#acf(res) # no debería haber uno por fuera de las bandas
+#acf(res^2) # no debería haber uno por fuera de las bandas pq sino hay una posible relación cuadrática
+#pacf(res) # no debrían estar fueraa de las bandas pq si no hay algo que no capta el modelo
+#Test de normalidad (no quiero rechazar H0 pero pues no es tan grave)
+#tseries::jarque.bera.test(res) # dice que no son normales
+#Test de autocorrelacion (no quiero rechazar H0)
+#Box.test(res, lag =20 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+
+
+###Estadisticas CUSUM
+#cum=cumsum(res)/sd(res)
+#N=length(res)
+#cumq=cumsum(res^2)/sum(res^2)
+#Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+#co=0.01717####Valor del cuantil aproximado para cusumsq para n/2
+#LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+#LI=-LS
+#LQS=co+(1:length(res))/N
+#LQI=-co+(1:length(res))/N
+#plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+#lines(LS,type="S",col="red")
+#lines(LI,type="S",col="red")
+#CUSUMSQ
+#plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+#lines(LQS,type="S",col="red")                                           
+#lines(LQI,type="S",col="red")
+```
+
+#### Ajuste del modelo ARMA
+
+Inicialmente se ajustó un modelo *AR(6)* y se refinó, sin embargo no se encontró un modelo autoregresivo puro que cumpliera los supuestos. Luego de una ardua búsqueda, finalmente encontramos un modelo mixto que cumpliera los supuestos, este es *ARMA(5,8)* que también fue refinado, de modo que el modelo final es:
+
+$$X_t=\phi_1 X_{t-1}+\phi_2 X_{t-2}+\phi_3 X_{t-3}+Z_t+\theta_1 Z_{t-1}+\theta_2 Z_{t-2}+\theta_3 Z_{t-3}+\theta_4 Z_{t-4}+\theta_6 Z_{t-6}$$
+
+```{r}
+# Propuesta modelo ARMA
+modelo.propuesto2=forecast::Arima(y,order=c(5,0,8),fixed=c(NA,NA,0,NA,0,NA,NA,NA,NA,0,NA,0,0,0)) # ARMA(5,8)
+lmtest::coeftest(modelo.propuesto2)
+```
+
+#### Evaluar los supuestos
+
+Para los modelos de la familia *ARMA* sí se hacen supuestos sobre los residuales que deben comportarse como ruido blanco. Por lo tanto, es necesario validar los supuestos
+
+```{r}
+# Verificación de supuestos ARMA
+res <- modelo.propuesto2$residuals
+plot(res)
+```
+
+###### No autocorrelación
+
+En general, los residuales presentan un buen comportamiento. No qued nada por explicar que no haya explicado ya el modelo.
+
+```{r}
+# ACF
+acf(as.numeric(res)) # No deberían estar fuera de las bandas
+# acf(as.numeric(res^2))
+```
+
+###### No autocorrelación parcial
+
+En general, los residuales presentan un buen comportamiento. No qued nada por explicar que no haya explicado ya el modelo.
+
+```{r}
+# PACF
+pacf(as.numeric(res)) # No deberían estar fuera de las bandas
+```
+
+##### Test de normalidad
+
+Parece ser que los datos NO son normales.
+
+```{r}
+#Test de normalidad 
+## No queremos rechazar H0 pero pues no es tan grave
+tseries::jarque.bera.test(res)
+```
+
+##### Test de autocorrelación
+
+Con un $p-value=$ no hay suficiente evidencia estadística para rechazar la hipóstesis nula, es decir, los residuales NO están correlacionados.
+
+```{r}
+#Test de autocorrelacion 
+## No queremos rechazar H0 pq es la hipótesis de no autocorrelación
+Box.test(res, lag =20 , type = "Ljung-Box", fitdf = 2)
+```
+
+##### Estabilización de la varianza
+
+Parece que tanto los parámetros como la varianza están "estables".
+
+```{r}
+# Estadisticas CUSUM
+## Mide la estabilidad en los parámetros del modelo
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.01717####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+
+# Estadísticas CUSUMSQ
+## Mide la estabilidad en la varianza del modelo
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                           
+lines(LQI,type="S",col="red")
+```
+
+##### Rolling
+
+Una vez verificados los supuestos, se procede a evaluar la capacidad predictiva del modelo mixto. Para ello utilizamos rolling.
+
+```{r}
+#| echo: false
+# Tendencia
+
+# Creación del objeto tibble
+energia_1=energia %>% map_df(rev)
+Fechas=as.Date(energia_1$fecha)
+energia_xts=xts(x = energia_1$Energia,frequency = 365.25,order.by = Fechas)
+
+# Creación objeto tssible a partir del objeto tibble
+df_energia=data.frame(Energia=energia_1$Energia,fecha=energia_1$fecha)
+tbl_energia=tibble(df_energia)
+tbl_energia_format_fecha=tbl_energia
+tsbl_energia=as_tsibble(tbl_energia_format_fecha,index=fecha)
+
+# Regresion lineal simple 
+fit_e<-lm(energia2~time(energia2),na.action=NULL)
+
+# Serie sin tendencia
+ElimiTendenerg<-energia2-predict(fit_e)
+```
+
+```{r}
+#| echo: false
+# Estacionalidad
+energia_copia<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+energia_copia<-as.data.frame(energia_copia)
+names(energia_copia)<-c("Energia","fecha")
+
+energia_copia$fecha<-as.Date(energia_copia$fecha)
+
+frec_ang=(2*pi/182) 
+frec_ang2=(2*pi/7)
+
+# Para s=182
+#Fourier k=1 
+energia_copia$sin = sin(c(1:5054)*(1*frec_ang))
+energia_copia$cos = cos(c(1:5054)*(1*frec_ang))
+
+#Fourier k=2 
+energia_copia$sin2 = sin(c(1:5054)*(2*frec_ang))
+energia_copia$cos2 = cos(c(1:5054)*(2*frec_ang))
+
+#Fourier k=3 
+energia_copia$sin3 = sin(c(1:5054)*(3*frec_ang))
+energia_copia$cos3 = cos(c(1:5054)*(3*frec_ang))
+
+# Para s=7
+#Fourier k=1 
+energia_copia$sin4 = sin(c(1:5054)*(1*frec_ang2))
+energia_copia$cos4 = cos(c(1:5054)*(1*frec_ang2))
+
+#Fourier k=2 
+energia_copia$sin5 = sin(c(1:5054)*(2*frec_ang2))
+energia_copia$cos5 = cos(c(1:5054)*(2*frec_ang2))
+
+#Fourier k=3 
+energia_copia$sin6 = sin(c(1:5054)*(3*frec_ang2))
+energia_copia$cos6 = cos(c(1:5054)*(3*frec_ang2))
+
+linmodel_ciclo<-lm(Energia~1+sin+cos+sin2+cos2+sin3+cos3+sin4+cos4+sin5+cos5+sin6+cos6,data=energia_copia)
+
+results_ciclo=linmodel_ciclo$fitted.values
+results_ciclo<-as.data.frame(results_ciclo)
+results_ciclo_ts<-ts(results_ciclo,start=c(2004,10,01),frequency=365.25)
+```
+
+```{r}
+#| echo: false
+# Rolling
+#fcmat=matrix(0,nrow=ntest,ncol=h)
+#for(i in 1:ntest){
+#  x=window(y,end=time(ly)[ntrain]+(i-1)/365.25)
+#  refit=Arima(x,order=c(5,0,8),fixed=c(NA,NA,0,NA,0,NA,NA,NA,NA,0,NA,0,0,0)#,method = c("CSS-ML"))
+#  fcmat[i,]=as.numeric(forecast::forecast(refit,h=h)$mean) # Pronósticos #para datos estacionarios
+#}
+```
+
+```{r}
+#| warning: false
+# Rolling corregido
+fcmat=matrix(0,nrow=ntest,ncol=h)
+for(i in 1:ntest){
+  x=window(y,end=time(ly)[ntrain]+(i-1)/365.25)
+  refit=Arima(x,model=modelo.propuesto2)
+  fcmat[i,]=as.numeric(forecast::forecast(refit,h=h)$mean) # Pronósticos para datos estacionarios
+}
+```
+
+```{r}
+#| echo: false
+# Esto es para no estar leyendo ese rolling todo el tiempo
+#saveRDS(fcmat, file="pron_est.RDS")
+fcmat<-readRDS("pron_est.RDS")
+```
+
+```{r}
+# Para volver a la escala original
+estacionalidad<-as.vector(results_ciclo_ts)
+tendencia<-as.vector(predict(fit_e))
+fchstepahe<-(fcmat+estacionalidad[4296:5054])+tendencia[4296:5054] # primero sumamos la estacionalidad y luego la tendencia
+
+errores_pred = verval-fchstepahe 
+ECM=apply(errores_pred^2,MARGIN = 2,mean,na.rm=TRUE)
+RECM=sqrt(ECM)
+RECM # 22840.1
+```
+
+#### Predicciones sobre datos de prueba
+
+```{r}
+fchstepahe_ts<-ts(fchstepahe,start=time(ly)[ntrain]+1/365.25,frequency=365.25)
+
+plot(verval_ts, col = "blue", ylab = "Energía", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+
+## Proceso ARIMA
+
+Para ajustar un modelo ARIMA (aunque no es lo más adecuado dado que la serie presenta componente estacional), primero se debe comprobar si la serie de tiempo presenta una raíz unitaria. Teniendo en cuenta que, para la prueba de Dicker Fuller, si el $p-valor$ es menor que un nivel de significancia $\alpha$ se rechaza la hipotesis nula de que la serie de tiempo presenta una raíz unitaria, se tiene lo siguiente.
+
+```{r}
+stats::ar(energia2) # Selecciona un modelo AR usando el criterio de Akaike, sugiere tomar lags=36
+tseries::adf.test(energia2,k=36) # Prueba Dicker Fuller: No hay raíz unitaria
+summary(ur.df(energia2,type="trend",lags = 36))
+```
+
+Como se puede ver, en ambos casos las pruebas muestran que la serie no presenta raíces unitarias, por lo que ajustar este modelo no es adecuado.
+
+## Proceso SARIMA
+
+Dado que la serie presenta multiple estacionalidad, no es posible ajustar un modelo de la familia SARIMA.
