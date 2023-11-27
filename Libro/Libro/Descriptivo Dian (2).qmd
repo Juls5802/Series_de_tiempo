@@ -18,6 +18,27 @@ library(readxl)
 library(tidyverse)
 library(forecast)
 library(plotly)
+library(urca)
+library(forecast)
+library(tseries)
+library(lmtest)
+library(uroot)
+library(fUnitRoots)
+library(tsoutliers)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(astsa)
+library(feasts)
+library(fable)
+library(timetk)
+library(tsibble)
+library(zoo)
+library(xts)
+library(readxl)
+library(tidyverse)
+library(forecast)
+library(plotly)
 ```
 
 ```{r}
@@ -362,4 +383,814 @@ Nótese que según la salida obtenida, la frecuencia máxima se alcanza en 0.5 (
 
 ## Desestacionalizar o eliminación de la componente estacional
 
-Para la estimación de la tendencia pasaremos al archivo en [phyton](https://github.com/Juls5802/Series_de_tiempo/blob/main/Arboles%20de%20decisi%C3%B3n%20y%20estimacion%20de%20la%20estacionalidad.ipynb), donde se presenta la eliminación de la tendencia nuevamente utilizando el metodo de descomposición STL, se estimara la componente estacional y por último se hará un modelo de árboles de decisión, un modelo de redes neuronales mutlicapa y un modelo de redes recurrentes, finalmente se va a comparar su desempeño basandonos en el error cuadratico medio.
+Con el fin de realizar un correcto análisis de la serie de tiempo en la cual no se tenga la interferencia de la estacionalidad, sino observar los verdaderos cambios de la serie de tiempo, procedemos a realizar la estimación de la estacionalidad utilizando componentes de Fourier. En este caso se van a utilizar 3 componentes de fourier teniendo en cuenta lo observado en el análisis realizado en el notebook de phyton.
+```{r}
+# Frecuencia angular w=2*pi/s
+frec_ang=(2*pi/12)
+
+dian_copia=ElimiTenddian_STL
+
+#Fourier k=1 
+dian_copia$sin = sin(c(1:282)*(1*frec_ang))
+dian_copia$cos = cos(c(1:282)*(1*frec_ang))
+
+#Fourier k=2 
+dian_copia$sin2 = sin(c(1:282)*(2*frec_ang))
+dian_copia$cos2 = cos(c(1:282)*(2*frec_ang))
+
+#Fourier k=3 
+dian_copia$sin3 = sin(c(1:282)*(3*frec_ang))
+dian_copia$cos3 = cos(c(1:282)*(3*frec_ang))
+#Fourier k=4
+dian_copia$sin4 = sin(c(1:282)*(4*frec_ang))
+dian_copia$cos4 = cos(c(1:282)*(4*frec_ang))
+
+linmodel_ciclo_dian<-lm(ElimiTenddian_STL~sin+cos+sin2+cos2
+                        +sin3+cos3+sin4+cos4,data=dian_copia)
+summary(linmodel_ciclo_dian)
+
+results_ciclo_dian=linmodel_ciclo_dian$fitted.values
+results_ciclo_dian<-as.data.frame(results_ciclo_dian)
+results_ciclo_ts<-ts(results_ciclo_dian,start=c(2000,01),frequency=12)
+```
+```{r}
+# Series original
+plot(ElimiTenddian_STL, main="Serie de tiempo de recaudo de impuestos DIAN",
+     cex.main=1.3,
+     xlab="Tiempo ",
+     ylab="Recaudo",
+     cex.lab=0.4)
+
+# Estimación de la estacionalidad
+lines(results_ciclo_ts,col="red")
+
+# Serie sin estacionalidad
+plot(ElimiTenddian_STL-results_ciclo_ts)
+```
+```{r}
+acf(as.numeric(ElimiTenddian_STL-results_ciclo_ts))
+```
+## Eliminación de la estacionalidad utilizando variables dummy 
+```{r}
+## Prueba de crear las variables dummy 
+library(stats)
+library(forecast)
+library(ggplot2)
+
+# Carga tus datos o crea una serie de tiempo similar
+# Puedes cargar tus datos desde un archivo o crearlos manualmente
+# Aquí se asume que tienes una serie de tiempo en un objeto llamado 'dian_detrend_STL'
+
+# Crea un objeto de variable dummy estacional
+dummy <- seasonaldummy(ElimiTenddian_STL)
+
+# Ajusta un modelo de regresión lineal
+modelo <- lm(ElimiTenddian_STL ~ dummy)
+
+# Obtiene un resumen del modelo
+summary(modelo)
+
+# Realiza predicciones con el modelo
+nuevas_obs <- length(ElimiTenddian_STL)  # Número de observaciones en la serie de tiempo
+predicciones <- predict(modelo, newdata = data.frame(dummy = dummy))
+
+# Crea un nuevo objeto de serie de tiempo con las predicciones
+dian_pred <- ts(predicciones, start = start(ElimiTenddian_STL), frequency = frequency(ElimiTenddian_STL))
+
+# Grafica los resultados
+plot(ElimiTenddian_STL, col = "blue", type = "l", xlab = "Fecha", ylab = "Valor Original")
+lines(dian_pred, col = "red")
+legend("topleft", legend = c("Impuestos", "Predicciones"), col = c("blue", "red"))
+```
+```{r}
+plot(ElimiTenddian_STL-dian_pred, col = "blue", type = "l", xlab = "Fecha", ylab = "Impuestos",main="Series sin tendencia (STL) y sin estacionalidad (dummy)")
+```
+
+
+```{r}
+acf(as.numeric(ElimiTenddian_STL-dian_pred))
+```
+# Suavizamiento exponencial.
+En el modelo por medio de suavizamiento exponencial también se considera una descomposición de la serie de forma aditiva. Las componentes de tenendecia y la estacionalidad se estiman por medio de una estadística EWMA (promedio movil ponderado exponencialmente), dándole más peso a las observaciones más cercanas en cada tiempo.
+
+Además, para este caso, se descompone la componente de tendencia en nivel y pendiente, y se estima un parámetro de la componente estacional por mes, como lo indica el periodo hallado de 12.  Las estimaciones se hallan de la siguiente manera:
+
+
+$$\begin{align*}
+\text{Componente de nivel: } & a_t=α(x_t-S_{t-p})+(1−α)(a_{t−1}+b_{t−1})\\
+\text{Componente de pendiente: } & b_t=β(a_t−a_{t−1})+(1−β)b_{t−1} \\
+\text{Componente estacional: } & S_t=\gamma(x_t−a_t)+(1−γ)S_{t−p} \\
+\end{align*}$$
+
+Preparando los datos y tambien deividiendo el conjunto de datos para posteriormente Observar cual es el mejor modelo segun su capacidad predictiva.
+
+```{r, echo=FALSE}
+#| warning: false
+#| echo: false
+library(dplyr)
+library(parsnip)
+library(rsample)
+library(timetk)
+library(modeltime)
+library(tsibble)
+library(tidymodels)
+```
+## Division de los datos en entrenamiento y prueba.
+En primer lugar se realizará la división de los datos en el conjunto de entrenamiento y de prueba.
+```{r}
+lserie=length(ldian2)
+ntrain=trunc(length(ldian2)*0.80) ##% del datos en el conjunto de entrenamiento es del 85%.
+ntrain
+time(ldian2)
+time(ldian2)[ntrain]###Me entrega la ultima fecha de la posición ntrain
+train=window(ldian2,end=time(ldian2)[ntrain])
+test=window(ldian2,start=time(ldian2)[ntrain]+1/12)##1/12 porque es la fracción que corresponde a un mes
+length(train)
+ntest=length(test)
+ntest ##Me define el valor de origins, o de ventanas de rolling.
+lserie ### Comparar los valores
+```
+Luego de dividir los datos procedemos a crear algunos vectores necesarios para realizar el rolling y posteriormente realizaremos el modelo sobre los datos de entrenamiento.
+## Modelamiento SE.
+```{r}
+h=1
+fchstepahe=matrix(0,nrow=ntest,ncol=h) ##Crea una Columna para los h-pasos adelante
+### verval contiene los verdaderos valores de la serie en el conjunto de prueba con los que se compararán los pronósticos.
+verval=cbind(test[1:ntest])
+for(j in 2:h){
+  verval=cbind(verval,c(test[j:ntest],rep(NA,j-1)))
+}
+
+verval=cbind(test[1:ntest],c(test[2:ntest],NA),c(test[3:ntest],NA,NA))
+####Ajuste del modelo con los datos de entrenamiento
+HWAP_train=stats::HoltWinters(train,seasonal="additive")
+HWAP_train$alpha
+HWAP_train$beta
+HWAP_train$gamma
+```
+### Análisis de reisulaes 
+El análisis de los residuales se hace sobre el conjunto de entrenamiento del siguiente modo.
+```{r}
+library(stats)
+# Obtener residuales del modelo Holt-Winters
+residuales_hw <- residuals(HWAP_train)
+# Visualizar los residuales en un gráfico
+plot(residuales_hw, type = "l", col = "blue", ylab = "Residuales", main = "Residuales del modelo Holt-Winters")
+acf(as.numeric(residuales_hw))
+pacf(as.numeric(residuales_hw))
+#Test de Ljung-Box
+# Longitud de los residuos dividida por 4
+longitud_dividida <- length(residuales_hw) / 4
+cat("Longitud de los residuos dividida por 4:", longitud_dividida, "\n")
+# Raíz cuadrada de la longitud de los residuos
+raiz_cuadrada <- sqrt(length(residuales_hw))
+cat("Raíz cuadrada de la longitud de los residuos:", raiz_cuadrada, "\n")
+# Test de Ljung-Box para autocorrelación
+library(stats)
+# Lags a considerar (24 en este caso)
+lags <- 24
+# Realizar el test de Ljung-Box
+ljung_box_test <- Box.test(residuales_hw, lag = lags, type = "Ljung-Box", fitdf = 0)
+cat("Estadística de Ljung-Box:", ljung_box_test$statistic, "\n")
+cat("P-valor:", ljung_box_test$p.value, "\n")
+```
+En este caso es posible observar que al revisar las graficas del ACf y PACF no se evidencian que se tengan cosas por explicar, además la prueba de Ljung-Box, nos da un p valor de 0.2530558 el cual es más grande que un valor $\alpha=0.05$, es decir que existe evidencia estadisticamente significativa para rechazar la hipotesis de correlación, es decir que los residuales no parecen estar correlacionados.
+Luego de esto procederemos a realizar Rolling para conocer la capacidad predictiva del modelo.
+### Rolling SE
+
+```{r}
+##Rolling
+for(i in 1:(ntest))
+{
+  x=window(ldian2,end=time(ldian2)[ntrain]+(i-1)/12)
+  print(length(x))
+  refit=stats::HoltWinters(x,alpha=0.09446078,beta=0.06537417 ,gamma=0.4091491 ,seasonal="additive")
+    fchstepahe[i,]=as.numeric(forecast::forecast(refit,h=h)$mean)
+}
+fchstepahe
+errores_pred=exp(verval[,1]) -exp(fchstepahe) ##Observación: debo devolver los pronósticos y los verdaderos valores a la escala original si es necesario.
+ECM=apply(errores_pred^2,MARGIN = 2,mean,na.rm=TRUE) ##Acá se computa la medida de precisión del pronóstico(en este caso ECM).
+RECM=sqrt(ECM) ##Se le saca raíz 
+RECM ##se lee: Primera fila RECM 1-paso adelante y así sucesivamente.
+
+```
+De este modo se obtuvo un valor ECM de 4.595703e+12 (Billones) y un valor RECM de 2143759 (Millones)
+### Predicción usando el modelo SE.
+```{r}
+verval_ts<-ts(exp(verval[,1]),start=time(ldian2)[ntrain]+1/12,frequency=12)
+fchstepahe_ts<-ts(exp(fchstepahe),start=time(ldian2)[ntrain]+1/12,frequency=12)
+
+plot(verval_ts, col = "blue", ylab = "Impuestos", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+
+# Modelamiento ARMA
+En el siguiente aparatado se busca ajustar los modelos concernientes a la familia ARMA, esto quiere decir que se va a intentar realizar un modelamiento para un modelo AR, MA y ARMA, posteriormente se observara cual de los modelos ajustados es mejor en terminos de su capacidad predictiva comparando sus ECM.
+
+Teniendo en cuenta que para realizar el modelamiento utilizando ARMA es necesario que la serie de tiempo sea estacionaria, se utilizara la serie sin tendencia por medio de descomposición STL y se realizará el modelamiento simultaneamente eliminando la estacionalidad por medio de variables dummy y de componentes de Fourier.
+
+## Modelamiento ARMA con componentes de fourier.
+En primer lugar iniciamos utilizando la serie sin tendencia (via STL), con varianza estable y con estacionalidad eliminada (via componentes de fourier), se observaran su gráficos acf y su gráfico pacf para encontrar los posibles ordens p y q, para realizar los modelamientos.
+```{r}
+ElimiTenddian_STL_fourier<-ElimiTenddian_STL-results_ciclo_ts
+
+acf(as.numeric(ElimiTenddian_STL_fourier),main="Series estacionaria (STL-Fourier)",lag.max = length(dian2)/4)
+acf(as.numeric(ElimiTenddian_STL_fourier),main="Series estacionaria (STL-Fourier)",lag.max = length(dian2)/4,ci.type='ma')## Para el MA
+pacf(as.numeric(ElimiTenddian_STL_fourier),main="Series estacionaria (STL-Fourier)",lag.max = length(dian2)/4)
+```
+
+```{r}
+require(feasts)
+dian2_tsbl_notend=as_tsibble(ElimiTenddian_STL_fourier)
+dian2_tsbl_notend%>%gg_subseries(value)
+```
+Este gráfico nos indica que la series sin tendencia via STL y sin estacionalidad via componentes de fourier no hace que nuestra series de tiempo sea estacionaria, esto puede deberse a que las componentes de fourier no ayudaron a estimar de modo correcto la estacionalidad de este proceso.
+## Modelamiento ARMA con dummy.
+Teniendo en cuenta que el metodo que mejor estimó la estacionalidad fue el metodo de variables dummy, se procederá a realizar el modelado de 3 modelos, AR,MA y ARMA, luego procederemos a compararlos en terminos de su capacidad predictiva (ECM).
+## División de la base de datos en entrenamiento, validación y prueba.
+```{r}
+train_weight2 <- 0.8
+split2 <- as.integer(length(ElimiTenddian_STL) * train_weight2)
+#window(ldian2,end=time(ldian2)[ntrain])
+df_train2 <- window(ElimiTenddian_STL, end = time(ElimiTenddian_STL)[split2])#80%
+df_test2 <- window(ElimiTenddian_STL, start = time(ElimiTenddian_STL)[split2] + 1/12,)#20%
+```
+## Modelo AR
+En primer lugar es necesario realizar la estimación de las variables dummy sobre el conjunto de prueba lo cual se va a hacer a continuación.
+### Variables dummy 
+```{r}
+## Prueba de crear las variables dummy 
+library(stats)
+library(forecast)
+library(ggplot2)
+
+# Carga tus datos o crea una serie de tiempo similar
+# Puedes cargar tus datos desde un archivo o crearlos manualmente
+# Aquí se asume que tienes una serie de tiempo en un objeto llamado 'dian_detrend_STL'
+# Crea un objeto de variable dummy estacional
+dummy <- seasonaldummy(df_train2)
+# Ajusta un modelo de regresión lineal
+modelo <- lm(df_train2 ~ dummy)
+# Obtiene un resumen del modelo
+summary(modelo)
+# Realiza predicciones con el modelo
+nuevas_obs <- length(df_train2)  # Número de observaciones en la serie de tiempo
+predicciones <- predict(modelo, newdata = data.frame(dummy = dummy))
+# Crea un nuevo objeto de serie de tiempo con las predicciones
+dian_pred_train <- ts(predicciones, start = start(df_train2), frequency = frequency(df_train2))
+
+# Grafica los resultados
+plot(df_train2, col = "blue", type = "l", xlab = "Fecha", ylab = "Valor Original")
+lines(dian_pred_train, col = "red")
+legend("topleft", legend = c("Impuestos", "Predicciones"), col = c("blue", "red"))
+```
+```{r}
+#Eliminando la estacionalidad.
+ElimiTenddian_STL_dummy<-df_train2-dian_pred_train
+plot(ElimiTenddian_STL_dummy,main="Datos estacionarios")
+acf(as.numeric(ElimiTenddian_STL_dummy),main="ACF datos estacionarios",lag.max = length(ElimiTenddian_STL_dummy)/4)
+acf(as.numeric(ElimiTenddian_STL_dummy),main="ACF datos estacionarios",lag.max = length(ElimiTenddian_STL_dummy)/4,ci.type='ma')
+pacf(as.numeric(ElimiTenddian_STL_dummy),main="PACF datos estacionarios",lag.max = length(ElimiTenddian_STL_dummy)/4)
+require(feasts)
+dian2_tsbl_notend=as_tsibble(ElimiTenddian_STL_dummy)
+dian2_tsbl_notend%>%gg_subseries(value)
+```
+
+### Ajustando el modelo AR(12)
+Al observar los graficos del acf y el pacf es posible observar que el ACF desciende lentamente hacia 0, mientras que en el PACF se observa que el rezago 12 es significativamente diferente de 0 y rezagos más grandes no parecen ser significativamente distintos de 0, por esta razon nos decantamos por construir un modelo de tipo AR(12)
+
+```{r}
+library(lmtest)
+ARPURO=Arima(ElimiTenddian_STL_dummy,order=c(12,0,0),include.mean = TRUE)
+coeftest(ARPURO)
+##Refinamiento del modelo 
+ARPURO_ref=Arima(ElimiTenddian_STL_dummy,order=c(12,0,0),include.mean = TRUE,
+                 fixed=c(NA,0,0,0,0,0,0,0,0,0,0,NA,0))
+### Modelo más parsimonioso que el anterior.
+ARPURO_ref_prueba=Arima(ElimiTenddian_STL_dummy,order=c(1,0,0),seasonal = c(1,0,0),include.mean = F)
+coeftest(ARPURO_ref)
+coeftest(ARPURO_ref_prueba)
+```
+Al realizar el refinamiento es posible observar que unicamente se encontraron como significativos los parametros asociados con los retardos 1 y 12. Posteriormente se va a realizar el análisis de residuales del modelo AR(12).
+### Verificación de supusetos modelo AR
+```{r }
+# Análisis de residuales
+residuales=ARPURO_ref_prueba$residuals
+plot(residuales)
+acf(residuales)
+acf(residuales^2)
+pacf(residuales)
+```
+Es posible observar con los graficos para el ACf y el PACF que no parece que quede algo por explicar dentro de los residuales de este modelo ajustado, lo cual es un buen indicio.
+```{R}
+#Test de normalidad
+tseries::jarque.bera.test(residuales)
+#Test de autocorrelación
+length(residuales)/4
+sqrt(length(residuales))
+Box.test(residuales, lag =17 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+```
+En este caso se tiene que el test de normalidad dado por el test de jarque bera, tiene un p valor de 2.2e-16, el cual es menor que un valor alpha del 0.05, por lo tanto existe suficiente evidencia estadistica para rechazar la hipotesis de normalidad.
+En el caso de la prueba de autocorrelación se obtiene un p valor de 0.8409, lo cual indica que  no hay suficiente evidencia para afirmar que hay autocorrelación significativa en los residuos.
+```{R}
+###Estad?sticas CUSUM
+res=residuales
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.10997####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+#CUSUMSQ
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                                                           
+lines(LQI,type="S",col="red")
+```
+Este gráfico mide la variabilidad de los residuales, en este caso se tiene que se sale un poco la variabilidad de las bandas de confianza, pero esto no ocurre por un largo periodo de tiempo. 
+
+### Rolling AR()
+```{r,warning=FALSE}
+# rolling 
+#ElimiTenddian_STL-dian_pred
+h=1
+fcmat=matrix(0,nrow=ntest,ncol=h)
+for(i in 1:ntest){
+  x=window((ElimiTenddian_STL-dian_pred),end=time(ElimiTenddian_STL-dian_pred)[ntrain]+(i-1)/12)
+  #print(length(x))
+  refit=Arima(x,model=ARPURO_ref_prueba)
+  fcmat[i,]=as.numeric(forecast::forecast(refit,h=h)$mean)
+}
+
+# para volver a la escala original
+estacionalidad<-as.vector(dian_pred)
+tendencia<-as.vector(modelo_stl$trend)
+fchstepahe<-(fcmat+estacionalidad[226:282])+tendencia[226:282] # primero sumamos la estacionalidad y luego la tendencia
+
+errores_pred=exp(verval[,1]) -exp(fchstepahe) ##Observación: debo devolver los pronósticos y los verdaderos valores a la escala original si es necesario.
+ECM=apply(errores_pred^2,MARGIN = 2,mean,na.rm=TRUE) ##Acá se computa la medida de precisión del pronóstico(en este caso ECM).
+RECM=sqrt(ECM) ##Se le saca raíz 
+RECM # 1308387
+```
+Con el Rolling sobre el modelo AR(12) se obutov un valor ECM de 1.711875e+12 (Billones) y un valor RECM de 1308387 (Millones)
+### Predicción usando el modelo AR(12)
+```{r}
+verval_ts<-ts(exp(verval[,1]),start=time(ldian2)[ntrain]+1/12,frequency=12)
+fchstepahe_ts<-ts(exp(fchstepahe),start=time(ldian2)[ntrain]+1/12,frequency=12)
+
+plot(verval_ts, col = "blue", ylab = "Impuestos", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+
+# Prueba de raices unitarias.
+Antes de proceder con algun modelo ARIMA o SARIMA, realizaremos la prueba de raices unitarias de Dickey Fuller.
+```{r}
+##Aplicando la prueba de Dickey Fuller sobre la serie con varianza  estabilizada
+pacf(ldian2)## SErie dian en escala logaritmica (Boxcox)
+ar(ldian2)
+
+resultadodf_1<-adf.test(ldian2,k=15)
+resultadodf_1
+summary(resultadodf_1)
+```
+En este caso se obtuvo un p-valor de 0.4965, el cual es mayor que un valor $\alpha=0.05$, lo que nos indica no se tiene evidencia estadistica suficiente para rechazar la hipótesis nula de que la serie temporal tiene una raíz unitaria.
+Ahora procederemos a realizar la diferenciación ordinaria y luego se analizará si es necesario realizar una nueva diferenciación.
+```{r}
+#Diferenciando la serie de tiempo 
+dldian2=diff(ldian2)
+plot(dldian2)
+```
+
+```{r}
+pacf(as.numeric(dldian2),lag.max=length(dldian2)/4)
+acf(as.numeric(dldian2),lag.max = length(dldian2)/4)
+ar(dldian2)
+adf.test(dldian2,k=13)
+summary(ur.df(dldian2,type="trend",lags = 13))
+monthplot(dldian2)
+spectrum(dldian2)
+```
+Al utilizar ambos paquetes en este caso, se tiene que en ambas situaciones se obtiene un p-valor pequeño, el cual es menor que $\alpha=0.05$, lo que quiere decir que hay evidencia estadística para afirmar que la serie temporal no tiene una raíz unitaria, por lo tanto no sería necesario realizar más diferenciaciones ordinarias.
+
+# Modelo ARIMA con variables dummy 
+## Ajustando el modelo ARIMA
+En primer lugar es necesario diviir los datos en conjunto de entrenamiento y de prueba.
+```{r}
+## Divison de los datos Utilizando los datos con varianza estable por boxcox.
+
+train_weight2 <- 0.8
+split2 <- as.integer(length(dldian2) * train_weight2)
+#window(ldian2,end=time(ldian2)[ntrain])
+df_train3 <- window(ldian2, end = time(ldian2)[split2])#80%
+df_test3 <- window(ldian2, start = time(ldian2)[split2] + 1/12)#20%
+
+```
+Por lo observado en los graficos de acf, tiene snetido realizar un ajuste de un modelo ARIMA(12,1,0), puesto que el grafico del ACF baja lentamente y luego del rezago 12, la autocorrelación parcial se hace significativamente igual a 0 (observando el grafico PACF).
+
+```{r,warning=FALSE}
+dummy_ARIMA<-forecast::seasonaldummy(df_train3)
+###Variables Dummy
+ARIMA<-Arima(df_train3,order=c(12,1,0),include.mean = TRUE,xreg = dummy_ARIMA)
+coeftest(ARIMA)
+## Refinamiento 
+ARIMA_ref<-Arima(df_train3,order=c(12,1,0),include.mean = TRUE,xreg = dummy_ARIMA,fixed=c(NA,NA,NA,NA,0,0,0,0,0,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0,NA))
+coeftest(ARIMA_ref)
+```
+Ahora procedemos a observar si se cumplen los supuestos de este modelo.
+## Verificación de los supuestos.
+```{r}
+## Validación de los supuestos.
+# Análisis de residuales
+residuales <-ARIMA_ref$residuals 
+
+plot(residuales)
+acf(as.numeric(residuales))
+acf(as.numeric(residuales^2))
+pacf(as.numeric(residuales))
+```
+
+```{R}
+#Test de normalidad
+tseries::jarque.bera.test(residuales)
+#Test de autocorrelación
+length(residuales)/4
+sqrt(length(residuales))
+Box.test(residuales, lag =17 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+```
+En este caso se tiene que se rechaza el supuesto de normalidad ya que 2.2e-16 (p-value) es menor que un valor alpha de 0.05,en este caso el p-valor de la prueba Box-Ljung es 0.002655, que es menor que 0.05, por lo tanto hay suficiente evidencia para no rechazar que hay autocorrelación significativa en los residuos.
+```{R}
+###Estad?sticas CUSUM
+res=residuales
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.10997####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+#CUSUMSQ
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                                                           
+lines(LQI,type="S",col="red")
+```
+# Modelos SARIMA
+## División de los datos 
+```{r}
+train_weight2 <- 0.8
+split2 <- as.integer(length(ldian2) * train_weight2)
+#window(ldian2,end=time(ldian2)[ntrain])
+df_train4 <- window(ldian2, end = time(ldian2)[split2])#80%
+df_test4 <- window(ldian2, start = time(ldian2)[split2] + 1/12)#20%
+```
+Teniendo en cuenta la prueba de raices unitarias realizada anteriormente se conoce que hay presencia de una raíz unitaria, por lo cual se deberia realizar una diferenciación ordinaria, por otro lado se sabe de la sección del análisis descriptivo que se tiene estacionalidad de periodo 12, por dicha razón procederemos a realizar diferenciacion estacional, posteriormente observaremos los posibles ordenes para el modelamiento SARIMA.
+```{r}
+##Diferencia estacional.
+dldian2<-diff(df_train4)
+monthplot(dldian2)
+acf(as.numeric(dldian2),lag.max = length(dian2)/4)
+spectrum(dldian2)
+nsdiffs(dldian2)
+nsdiffs(ldian2)
+```
+La función "nsdiffs", no indica la cantidad de diferencias estacionales que se deben hacer, en este caso se nos indica que es 1, a su ves se conovia gracias a la sección descriptiva que se tenia presencia de una componente estacional de periodo $s=12$.
+```{r}
+##Diferenciacion estacional
+Ddldian2=diff(dldian2,lag=12)###lag=s
+```
+
+```{r}
+plot(dldian2)
+plot(Ddldian2)
+monthplot(Ddldian2)
+acf(as.numeric(Ddldian2),lag.max = length(dian2)/4)
+spectrum(Ddldian2)
+nsdiffs(Ddldian2)
+```
+Notese que ya es posible observar una serie estacionaria luego de realizar la diferenciación ordinaria y la diferenciación estacionaria, además no parece ser necesario realizar más diferenciaciones. 
+Ahora si procedemos a encontrar los ordenes para los modelos de la familia SARIMA.
+
+```{r}
+acf(as.numeric(Ddldian2))
+acf(as.numeric(Ddldian2),lag.max = length(dian2)/4, ci.type='ma')# q=0,1,2 Q=0,1
+pacf(as.numeric(Ddldian2),lag.max = length(dian2)/4)#p=0,1,2,...,5, P=0,1,2,3
+```
+Luego de analizar los gráficos del ACF y PACF se procede a ajustar el modelo SARIMA.
+## Ajuste del modelo 
+```{r,warning=FALSE}
+##Ajuste del modelo SARIMA
+modelo_SARIMA = Arima(df_train4, c(5, 1, 1),seasonal = list(order = c(3, 1, 2), period = 12),lambda = 0)
+coeftest(modelo_SARIMA)
+##Refinando el modelo SARIMA.
+modelo_SARIMA_ref = Arima(df_train4, c(5, 1, 1),seasonal = list(order = c(3, 1, 2), period = 12),lambda = 0,fixed=c(0,NA,0,0,0,NA,NA,NA,NA,0,0))
+coeftest(modelo_SARIMA_ref)
+```
+## Verificación de los supusetos.
+Ahora procederemos a revisar los supusetos de este modelo.
+```{r }
+# Análisis de residuales
+residuales=modelo_SARIMA_ref$residuals
+plot(residuales)
+acf(as.numeric(residuales))
+acf(as.numeric(residuales^2))
+pacf(as.numeric(residuales))
+```
+Notese que los acf y pacf parecen indicar que no queda nada por ser explicado en los residuales del modelo, lo cual es un buen indicio.
+
+```{R}
+#Test de normalidad
+tseries::jarque.bera.test(residuales)
+#Test de autocorrelación
+length(residuales)/4
+sqrt(length(residuales))
+Box.test(residuales, lag =17 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+```
+En este caso se tiene que se rechaza el supuesto de normalidad ya que 2.2e-16 (p-value) es menor que un valor alpha de 0.05,en este caso el p-valor de la prueba Box-Ljung es 0.9599, que es mayor que 0.05, por lo tanto hay suficiente evidencia para rechazar que hay autocorrelación significativa en los residuos.
+
+
+```{R}
+###Estad?sticas CUSUM
+res=residuales
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.10997####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+#CUSUMSQ
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                                                           
+lines(LQI,type="S",col="red")
+```
+## Rolling modelo SARIMA
+Luesto de observar los supuestos sobre los residuales del modelo SARIMA ajustado procedemos a observar la capacidad predictiva del modelo haciendo rolling sobre el conjunto de prueba y obteniendo su ECM.
+
+```{r,warning=FALSE}
+h=1
+lserie=length(df_train4)##datos de entrenamiento
+ntrain=length(df_train4)
+ntrain
+time(df_train4)
+time(df_train4)[ntrain]###Me entrega la ultima fecha de la posición ntrain
+train=window(ldian2,end=c(2018,8))
+test=window(ldian2, start = time(df_train4)[split2] + 1/12)
+#length(train)
+ntest=length(df_test4)
+ntest
+fcmat=matrix(0,nrow=ntest,ncol=h)
+for(i in 1:ntest)
+{
+  x=window(ldian2,end=time(ldian2)[ntrain]+(i-1)/12)
+  #print(length(x))
+  refit=Arima(x, model=modelo_SARIMA_ref)
+  fcmat[i,]=as.numeric(forecast::forecast(refit,h=h)$mean)
+}
+fcmat_menos_reales<-exp(verval[,1])-exp(fcmat)
+ECM=apply(fcmat_menos_reales^2,MARGIN = 2,mean,na.rm=TRUE)
+RECM=sqrt(ECM) 
+RECM # 4953741
+```
+Se obtuvo un valor de ECM de 4.827798e+12 (Billones) y un RECM de 
+2197225 (Millones).
+## Predicción usando el modelo SARIMA.
+```{r}
+verval_ts<-ts(exp(test),start=time(ldian2)[ntrain]+1/12,frequency=12)
+fchstepahe_ts<-ts(exp(fcmat),start=time(ldian2)[ntrain]+1/12,frequency=12)
+
+plot(verval_ts, col = "blue", ylab = "Impuestos", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+# Modelamiento de los outliers (modelo SARIMA).
+```{r}
+resiO= residuals(modelo_SARIMA_ref)
+coefO= coefs2poly(modelo_SARIMA_ref)
+outliersSARIMA= locate.outliers(resiO,coefO,cval=4.5)
+outliersSARIMA
+n=length(df_train4)
+xregSARIMA = outliers.effects(outliersSARIMA,n )
+xregSARIMA
+```
+Notese que se obtuvieron 26 outliers, lo cual nos puede indicar que el modelo ajustado no es muy bueno para este modelo, por dicha razón no seria lo mejor ajustar outliers a este modelo.
+```{r}
+modelo_SARIMA_ref_outliers = Arima(df_train4, c(5, 1, 1),seasonal = list(order = c(3, 1, 2), period = 12),lambda = 0,fixed=c(0,NA,0,0,0,NA,NA,NA,0,0,0,NA,NA,0,NA,NA,NA,NA,0,0,NA,0),xreg =xregSARIMA )
+coeftest(modelo_SARIMA_ref_outliers)
+```
+```{r}
+## Revisando que no hay más outliers
+resiO2= residuals(modelo_SARIMA_ref_outliers)
+coefO2= coefs2poly(modelo_SARIMA_ref_outliers)
+outliersSARIMA2= locate.outliers(resiO2,coefO2,cval=4.5)
+outliersSARIMA2
+n=length(df_train4)
+xregSARIMA2 = outliers.effects(outliersSARIMA2,n )
+xregSARIMA2
+##No hay más outliers
+```
+```{r}
+total_outliers2<-cbind(xregSARIMA,xregSARIMA2)
+modelo_SARIMA_ref_outliers2 = Arima(df_train4, c(5, 1, 1),seasonal = list(order = c(3, 1, 2), period = 12),lambda = 0,fixed=c(0,NA,0,0,0,NA,NA,NA,0,0,0,NA,0,0,NA,0,0,0,0,0,NA,0,NA,NA),xreg =total_outliers2 )
+coeftest(modelo_SARIMA_ref_outliers2)
+```
+
+
+## Verificación de los supusetos.
+Ahora procederemos a revisar los supusetos de este modelo.
+```{r }
+# Análisis de residuales
+residuales=modelo_SARIMA_ref_outliers2$residuals
+plot(residuales)
+acf(as.numeric(residuales))
+acf(as.numeric(residuales^2))
+pacf(as.numeric(residuales))
+```
+
+```{R}
+#Test de normalidad
+tseries::jarque.bera.test(residuales)
+#Test de autocorrelación
+length(residuales)/4
+sqrt(length(residuales))
+Box.test(residuales, lag =17 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+```
+Por el p value encontrado en el test de Jarque bera (1.059e-08<0.05) se tiene suficiente evidencia estadistica para rechazar la hipotesis de normalidad, es decir que lso residuales no siguen una distribución normal, por otro lado se tiene un p valor de 0.9216 en la prueba de Box-Ljung, lo cual nos indica que hay suficiente evidencia estadistica para rechazar la hipótesis de Autocorrelación dentro de los residuales.
+
+```{R}
+### Estadisticas CUSUM
+res=residuales
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.10997####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+#CUSUMSQ
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                                                           
+lines(LQI,type="S",col="red")
+```
+
+## Rolling sobre el modelo SARIMA con outliers.
+```{r}
+h=1
+num_outliers=dim(total_outliers2)[2]
+regresoras_aditivos1=matrix(c(rep(0,h*(num_outliers-7))),h,num_outliers-7)
+#regresoras_LS=matrix(c(rep(1,h)),h,1)
+#regresoras_aditivos2=matrix(c(rep(0,h)),h,1)
+regresoras_TC=matrix(c(rep(0,h)),h,7)
+regresoras=cbind(regresoras_aditivos1,regresoras_TC)
+colnames(regresoras)=colnames(total_outliers2)
+```
+
+```{r}
+prediccSARIMAo <- matrix(0, nrow=ntest, ncol=h) 
+verval <- cbind(test[1:ntest])
+for(i in 1:(ntest)){
+  x<-window(ldian2,end=time(ldian2)[ntrain]+(i-1)/12)
+  refit <- Arima(x, model=modelo_SARIMA_ref_outliers2,xreg = total_outliers2)
+  prediccSARIMAo[i,] <- forecast::forecast(refit, xreg=regresoras,h=h)$mean
+  total_outliers2<-rbind(total_outliers2,regresoras)
+}
+errores_predSARIMAo <- exp(verval) -exp(prediccSARIMAo)
+ECM_SARIMAo <- mean(errores_predSARIMAo^2) # Medida de precisión del pronóstico (ECM).
+RECM_SARIMAo <- sqrt(ECM_SARIMAo) # Se le saca raíz 
+RECM_SARIMAo
+```
+Se obtuvo un valor ECM de  4.827798e+12 y un valor RECM de 2129751.
+## Prediccion utilizando el modelo SARIMA con outliers.
+```{r}
+verval_ts<-ts(exp(verval),start=time(ldian2)[ntrain]+1/12,frequency=12)
+fchstepahe_ts<-ts(exp(prediccSARIMAo),start=time(ldian2)[ntrain]+1/12,frequency=12)
+
+plot(verval_ts, col = "blue", ylab = "Impuestos", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
+
+# Modelamiento de los outliers (modelo AR).
+```{r}
+resiO= residuals(ARPURO_ref_prueba)
+coefO= coefs2poly(ARPURO_ref_prueba)
+outliersSARIMA= locate.outliers(resiO,coefO,cval=4.5)
+outliersSARIMA
+n=length(df_train4)
+xregAR = outliers.effects(outliersSARIMA,n )
+xregAR
+```
+
+```{r}
+ARPURO_ref_prueba_outliers=Arima(ElimiTenddian_STL_dummy,order=c(1,0,0),seasonal = c(1,0,0),include.mean = F,xreg=xregAR,fixed=c(NA,NA,NA,NA,NA,NA,0))
+#coeftest(modelo_AR_ref_outliers)
+```
+```{r}
+resiO= residuals( ARPURO_ref_prueba_outliers)
+coefO= coefs2poly( ARPURO_ref_prueba_outliers)
+outliersSARIMA= locate.outliers(resiO,coefO,cval=4.5)
+outliersSARIMA
+n=length(df_train4)
+xregAR2 = outliers.effects(outliersSARIMA,n )
+xregAR2
+```
+```{r}
+total_outliers=cbind(xregAR,xregAR2)
+ ARPURO_ref_prueba_outliers2=Arima(ElimiTenddian_STL_dummy,order=c(1,0,0),seasonal = c(1,0,0),include.mean = F,xreg=total_outliers,fixed=c(NA,NA,NA,NA,NA,NA,0,NA))
+coeftest( ARPURO_ref_prueba_outliers2)
+```
+
+## Verificación de los supuestos modelo AR(12) con Outliers.
+```{r }
+# Análisis de residuales
+residuales= ARPURO_ref_prueba_outliers2$residuals
+plot(residuales)
+acf(as.numeric(residuales))
+acf(as.numeric(residuales^2))
+pacf(as.numeric(residuales))
+```
+```{R}
+#Test de normalidad
+tseries::jarque.bera.test(residuales)
+#Test de autocorrelación
+length(residuales)/4
+sqrt(length(residuales))
+Box.test(residuales, lag =17 , type = "Ljung-Box", fitdf = 2)#No puedo Rechazar la hipótesis de no autocorrelación!
+```
+```{R}
+###Estad?sticas CUSUM
+res=residuales
+cum=cumsum(res)/sd(res)
+N=length(res)
+cumq=cumsum(res^2)/sum(res^2)
+Af=0.948 ###Cuantil del 95% para la estad?stica cusum
+co=0.10997####Valor del cuantil aproximado para cusumsq para n/2
+LS=Af*sqrt(N)+2*Af*c(1:length(res))/sqrt(N)
+LI=-LS
+LQS=co+(1:length(res))/N
+LQI=-co+(1:length(res))/N
+plot(cum,type="l",ylim=c(min(LI),max(LS)),xlab="t",ylab="",main="CUSUM")
+lines(LS,type="S",col="red")
+lines(LI,type="S",col="red")
+#CUSUMSQ
+plot(cumq,type="l",xlab="t",ylab="",main="CUSUMSQ")                      
+lines(LQS,type="S",col="red")                                                                           
+lines(LQI,type="S",col="red")
+```
+## Rolling sobre el modelo AR con outliers.
+```{r}
+h=1
+num_outliers=dim(total_outliers)[2]
+regresoras_aditivos1=matrix(c(rep(0,h*(num_outliers-4))),h,num_outliers-4)
+#regresoras_LS=matrix(c(rep(1,h)),h,1)
+regresoras_aditivos2=matrix(c(rep(0,h)),h,1)
+regresoras_TC=matrix(c(rep(0,h)),h,3)
+regresoras=cbind(regresoras_aditivos1,regresoras_TC,regresoras_aditivos2)
+colnames(regresoras)=colnames(total_outliers)
+```
+
+```{r}
+prediccARo <- matrix(0, nrow=ntest, ncol=h) 
+verval <- cbind(test[1:ntest])
+for(i in 1:(ntest)){
+  x <- window((ElimiTenddian_STL-dian_pred), end = time(ElimiTenddian_STL-dian_pred)[ntrain]+(i-1)/12)
+  refit <- Arima(x, model=ARPURO_ref_prueba_outliers2,xreg = total_outliers)
+  prediccARo[i,] <- forecast::forecast(refit, xreg=regresoras,h=h)$mean
+  total_outliers<-rbind(total_outliers,regresoras)
+}
+prediccARo1<-(prediccARo+estacionalidad[226:282])+tendencia[226:282]
+errores_predARo <- exp(verval) -exp(prediccARo1)
+ECM_ARo <- mean(errores_predARo^2) # Medida de precisión del pronóstico (ECM).
+RECM_ARo <- sqrt(ECM_ARo) # Se le saca raíz 
+RECM_ARo
+```
+Notese que se obtuvo un valor ECM de 1.697165e+12 y un valor de RECM de 1302753.
+## Prediccion utilizando el modelo AR con outliers
+```{r}
+verval_ts<-ts(exp(verval[,1]),start=time(ldian2)[ntrain]+1/12,frequency=12)
+fchstepahe_ts<-ts(exp(prediccARo1),start=time(ldian2)[ntrain]+1/12,frequency=12)
+
+plot(verval_ts, col = "blue", ylab = "Impuestos", xlab = "Tiempo")
+lines(fchstepahe_ts, col = "red")
+legend("topright", legend = c("Reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+```
