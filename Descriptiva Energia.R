@@ -92,7 +92,6 @@ plot(ElimiTendenerg,main="Serie energía sin tendencia",
      xlab="Tiempo",
      ylab="Consumo de energía",
      cex.lab=0.4)
-
 ### Filtro Promedios móviles####
 energia_decompo=decompose(energia2)
 plot(energia_decompo)
@@ -209,6 +208,8 @@ diferencia<-diff(energia2)
 energia_df<-cbind(as.matrix(diferencia),as.character(energia$fecha[-1]))
 energia_df<-as.data.frame(energia_df)
 names(energia_df)<-c("Energia","Fecha")
+write.csv(energia_df, "C:/Users/LENOVO/Desktop/Universidad/Series de tiempo/Series_de_tiempo/elimitendenerg.csv", row.names=FALSE)
+
 
 energia_df$Fecha<-as.Date(energia_df$Fecha)
 energia_df$time = as.POSIXct(energia_df$Fecha, "%Y-%m-%d")
@@ -232,9 +233,9 @@ plot_ly(data = energia_mensual, x = ~ month, y = ~ mean, type =
          xaxis = list(title = "Mes"))
 
 ##### Tendencia lineal (sin) ####
-energia_df<-cbind(as.matrix(ElimiTendenerg),as.character(energia$fecha))
+energia_df<-cbind(as.character(energia$fecha),as.matrix(ElimiTendenerg))
 energia_df<-as.data.frame(energia_df)
-names(energia_df)<-c("Energia","Fecha")
+names(energia_df)<-c("Fecha","Energia")
 
 energia_df$Fecha<-as.Date(energia_df$Fecha)
 energia_df$time = as.POSIXct(energia_df$Fecha, "%Y-%m-%d")
@@ -622,6 +623,8 @@ lines(results_ciclo_ts,col="red")
 plot(energia2-results_ciclo_ts)
 plot(energia2-results_ciclo_ts,xlim=c(2004,2007))
 
+energia_esta<-ElimiTendenerg-results_ciclo_ts
+write.csv(energia_esta, "C:/Users/LENOVO/Desktop/Universidad/Series de tiempo/Series_de_tiempo/energia_esta.csv", row.names=FALSE)
 
 
 # PREGUNTAS PROFE ####

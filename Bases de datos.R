@@ -54,3 +54,4 @@ plot(energia2, main="Serie de tiempo de la energía diaria de una empresa estado
      cex.lab=0.4)
 
 plot(as.ts(energia$Energia))
+
